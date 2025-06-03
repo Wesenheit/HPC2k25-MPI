@@ -15,9 +15,9 @@ int main(int argc, char** argv)
     auto node = Node(delta,input_path,&com);
     node.construct_lookup_table();
     
-    //node.run();
+    node.run();
 
-
+    node.save(output_path);
     MPI_Finalize();
     return 0;
 }

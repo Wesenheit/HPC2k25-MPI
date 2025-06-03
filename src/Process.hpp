@@ -8,6 +8,8 @@
 #include <list>
 #include <utility>
 #include <filesystem>
+#include <array>
+#include <cassert>
 #include <mpi.h>
 
 #include "Lookup.hpp"
@@ -16,28 +18,30 @@ namespace fs = std::filesystem;
 using Bucket = std::list<int>;
 static int MAX = 1000000;
 
+using Message = std::array<int, 2>; // v d message
+
 class Node
 {
-    int N;
-    int lower;
-    int upper;
-    int Delta;
+    int N; //number of nodes
+    int lower; //lower bound for nodes we manage
+    int upper; //upper bound for nodes we manage
+    int Delta; //just delta
 
-    MPI_Comm world;
-    int rank;
-    int size_world;
+    MPI_Comm world; //communicator
+    int rank; //rank
+    int size_world; //number of processes
 
-    int source_size;
-    int target_size;
+    std::vector<int> distances; //distances of edge
+    std::vector<int> vertex_1; //start of the edge
+    std::vector<int> vertex_2; //end of the edge
 
-    std::vector<int> distances;
-    std::vector<int> vertex_1;
-    std::vector<int> vertex_2;
+    std::vector<Bucket*> buckets; //vector of buckets
+    std::vector<int> tenative; //tenative distance
 
-    std::vector<Bucket*> buckets;
-    std::vector<int> tenative;
+    Lookup table; //lookup table, alows to
+    //obtain the source of the target
 
-    Lookup table;
+    std::vector<std::pair<int,Message*>> que;
 
     public:
     Node(int Delta,fs::path in, MPI_Comm* com)
@@ -46,7 +50,7 @@ class Node
         world = *com;
         MPI_Comm_rank(*com,&rank);
         MPI_Comm_size(*com,&size_world);
-    
+
         std::string name = std::to_string(rank) + ".in";
         in /= name;
 
@@ -54,16 +58,16 @@ class Node
 
         if (!inputFile.is_open())  throw("File error");
         inputFile >> N >> lower >> upper;
-        
+
         int a,b,c;
         while (inputFile >> a >> b >> c) {
             vertex_1.push_back(a);
             vertex_2.push_back(b);
             distances.push_back(c);
         }
-        
 
-        tenative = std::vector<int>(upper-lower,INT_MAX);
+
+        tenative = std::vector<int>(upper-lower+1,INT_MAX);
         if (lower == 0)
         {
             tenative[0] = 0;
@@ -85,6 +89,17 @@ class Node
             op,
             world);
         return global;
+    }
+    void save(fs::path out)
+    {
+        std::string name = std::to_string(rank) + ".out";
+        out /= name;
+        std::ofstream outputFile(out);
+        if (!outputFile.is_open()) throw("File error");
+        for (int i = lower; i <= upper; i++)
+        {
+            outputFile << i << " " << tenative[i-lower] << std::endl;
+        }
     }
     void synchronize();
     void construct_lookup_table();
@@ -115,7 +130,7 @@ void Node::construct_lookup_table()
     }
     MPI_Barrier(world);
 
-    
+
     for (int i = 0; i < size_world; i++)
     {
         if (rank == 0)
@@ -139,12 +154,11 @@ void Node::construct_lookup_table()
         }
         //MPI_Barrier(world);
     }
-    std::cout<<rank<<" " << table.leng() << std::endl;
 }
 
 void Node::relax(int u, int v, int d)
 {
-    if (v > lower && v < upper)
+    if (v >= lower && v <= upper)
     {
         if (d < tenative[v-lower])
         {
@@ -158,7 +172,7 @@ void Node::relax(int u, int v, int d)
             {
                 buckets[j] = new Bucket;
             }
-            if (buckets[j]->empty() || 
+            if (buckets[j]->empty() ||
                 buckets[j]->back() != v)
             {
                 buckets[j]->push_back(v);
@@ -167,14 +181,62 @@ void Node::relax(int u, int v, int d)
     }
     else
     {
-        return;
+        int destination = table.get_node_for_value(v);
+        Message * mes = new Message;
+        *mes = {v,d};
+        que.push_back({destination,mes});
     }
 }
 
 void Node::synchronize()
 {
-    
-    MPI_Barrier(world);
+    //Step 1 - measure total amount of messages
+    std::vector<int> count_to_send(size_world,0);
+    std::vector<int> mess_to_recive(size_world,0);
+
+    for (auto element:que)
+    {
+        count_to_send[element.first]++;
+    }
+
+    MPI_Alltoall(count_to_send.data(),1,MPI_INT,
+        mess_to_recive.data(),1,MPI_INT,world);
+
+    //Step 2 - send all messages
+    std::vector<MPI_Request> request_arr(que.size());
+    for (int i = 0; i < que.size();i++)
+    {
+        auto element = que[i];
+        MPI_Isend(element.second->data(),2,MPI_INT,element.first,0,
+            world,&request_arr[i]);
+        count_to_send[element.first]++;
+    }
+    MPI_Waitall(request_arr.size(),request_arr.data(), MPI_STATUS_IGNORE);
+
+    //Step 3 - recive all messages
+    int index = 0;
+    while (index < size_world)
+    {
+        if (mess_to_recive[index] == 0)
+        {
+            index++;
+        }
+        else
+        {
+            int buff[2];
+            MPI_Recv(buff,2,MPI_INT,index,0,world,MPI_STATUS_IGNORE);
+            assert(buff[0] >= lower && buff[0] <=upper);
+            relax(0,buff[0],buff[1]);
+            mess_to_recive[index]--;
+        }
+    }
+
+    //Step 4 - cleanup
+    for (auto element:que)
+    {
+        delete element.second;
+    }
+    que.clear();
 }
 
 
@@ -186,14 +248,11 @@ void Node::run()
     do
     {
         while (k < buckets.size() && (!buckets[k] || buckets[k]->empty())) k++;
-
-        if (k == MAX) break;
+        // std::cout<<k<<std::endl;
+        if (k == MAX)
+            break;
 
         k = all_reduce(&k,MPI_MIN);
-        if (rank == 0)
-        {
-            //std::cout << "k: " << k << std::endl;
-        }
         do
         {
             if (k < buckets.size() && buckets[k])
@@ -223,9 +282,6 @@ void Node::run()
     k++;
     }
     while (true);
-        
-    
-
 }
 
 

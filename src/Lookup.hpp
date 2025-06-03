@@ -7,6 +7,7 @@ class Lookup
     std::vector<int> lower;
     std::vector<int> upper;
     int size;
+
     public:
         Lookup()
         {
@@ -50,7 +51,7 @@ class Lookup
         {
             for (int i = 0; i < size;i++)
             {
-                if (value > lower[i] && value < upper[i])
+                if (value >= lower[i] && value <= upper[i])
                 {
                     return node[i];
                 }
