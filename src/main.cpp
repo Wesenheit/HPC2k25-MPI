@@ -10,11 +10,11 @@ int main(int argc, char** argv)
     fs::path output_path = argv[2];
 
 
-    int delta = 40;
+    int delta = 1;
     MPI_Comm com = MPI_COMM_WORLD;
     auto node = Node(delta,input_path,&com);
     node.construct_lookup_table();
-    
+
     node.run();
 
     node.save(output_path);

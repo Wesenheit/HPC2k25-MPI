@@ -1,6 +1,7 @@
 #ifndef PROCESS
 #define PROCESS
 
+#include <climits>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -16,7 +17,7 @@
 
 namespace fs = std::filesystem;
 using Bucket = std::list<int>;
-static int MAX = 1000000;
+static int MAX = 5000;//(std::numeric_limits<int>::max)();
 
 using Message = std::array<int, 2>; // v d message
 
@@ -64,10 +65,14 @@ class Node
             vertex_1.push_back(a);
             vertex_2.push_back(b);
             distances.push_back(c);
+
+            vertex_1.push_back(b);
+            vertex_2.push_back(a);
+            distances.push_back(c);
         }
 
 
-        tenative = std::vector<int>(upper-lower+1,INT_MAX);
+        tenative = std::vector<int>(upper-lower+1,MAX);
         if (lower == 0)
         {
             tenative[0] = 0;
@@ -98,7 +103,7 @@ class Node
         if (!outputFile.is_open()) throw("File error");
         for (int i = lower; i <= upper; i++)
         {
-            outputFile << i << " " << tenative[i-lower] << std::endl;
+            outputFile << tenative[i-lower] << std::endl;
         }
     }
     void synchronize();
@@ -109,6 +114,8 @@ class Node
 
 void Node::construct_lookup_table()
 {
+    //Let's find all nighbours in the system
+    //
     int* buffer_int;
     std::vector<int> buffer(2*size_world,0);
     if (rank == 0)

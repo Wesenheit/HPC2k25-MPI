@@ -27,7 +27,7 @@ class Lookup
         {
             return size;
         }
-        int get_index(int node) const
+        int get_index(int node)
         {
             for (int i = 0; i < this->node.size(); i++)
             {
@@ -37,6 +37,7 @@ class Lookup
                 }
             }
             return -1;
+            //throw("cannot find node in the table");
         }
         int get_lower(int node)
         {
@@ -56,7 +57,7 @@ class Lookup
                     return node[i];
                 }
             }
-            return -1;
+            throw("node not found int the lookup table");
         }
 
 };
