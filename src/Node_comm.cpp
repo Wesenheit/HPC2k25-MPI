@@ -129,7 +129,7 @@ void Node::synchronize_graph()
 
     //Step 3 - recive all messages
     int index = 0;
-    while (index < size_world)
+    while (index < mess_to_recive.size())
     {
         if (mess_to_recive[index] == 0)
         {

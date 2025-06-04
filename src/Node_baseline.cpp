@@ -3,16 +3,20 @@
 void Node::run()
 {
     int k = 0;
-    int global_k;
     int work_to_do;
     do
     {
-        while (k < buckets.size() && (!buckets[k] || buckets[k]->empty())) k++;
-        // std::cout<<k<<std::endl;
+        while (k < buckets.size() && (!buckets[k] || buckets[k]->empty()))
+            k++;
+        
+        if (k >= buckets.size())
+            k = MAX;
+
+        k = all_reduce(&k,MPI_MIN);
+        
         if (k == MAX)
             break;
 
-        k = all_reduce(&k,MPI_MIN);
         do
         {
             if (k < buckets.size() && buckets[k])
