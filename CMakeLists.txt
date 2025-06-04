@@ -5,7 +5,8 @@ project(sssp LANGUAGES CXX)
 find_package(MPI REQUIRED)
 
 set(SOURCES
-    src/main.cpp
+    src/main.cpp src/Node_comm.cpp
+    src/Node_base.cpp src/Node_baseline.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
@@ -20,4 +21,3 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
 # target_include_directories(${PROJECT_NAME} PRIVATE include)
-

@@ -3,12 +3,12 @@
 #include <vector>
 class Lookup
 {
-    std::vector<int> node;
-    std::vector<int> lower;
-    std::vector<int> upper;
-    int size;
-
     public:
+        std::vector<int> node;
+        std::vector<int> lower;
+        std::vector<int> upper;
+        int size;
+
         Lookup()
         {
             node.resize(0);
@@ -37,7 +37,6 @@ class Lookup
                 }
             }
             return -1;
-            //throw("cannot find node in the table");
         }
         int get_lower(int node)
         {
@@ -59,7 +58,17 @@ class Lookup
             }
             throw("node not found int the lookup table");
         }
-
+        Lookup& operator=(const Lookup& other)
+        {
+            if (this != &other)
+            {
+                node = other.node;
+                lower = other.lower;
+                upper = other.upper;
+                size = other.size;
+            }
+            return *this;
+        }
 };
 
 

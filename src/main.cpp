@@ -1,6 +1,8 @@
 #include <mpi.h>
-#include "Process.hpp"
+#include "Node.hpp"
 #include <filesystem>
+
+#define USE_GRAPH true
 
 namespace fs = std::filesystem;
 int main(int argc, char** argv)
@@ -10,14 +12,21 @@ int main(int argc, char** argv)
     fs::path output_path = argv[2];
 
 
-    int delta = 1;
-    MPI_Comm com = MPI_COMM_WORLD;
-    auto node = Node(delta,input_path,&com);
-    node.construct_lookup_table();
+    int delta = 40;
+    MPI_Comm com;
+    Node *node = new Node(delta,input_path,MPI_COMM_WORLD);
 
-    node.run();
+    if (USE_GRAPH)
+    {
+        node->get_graph_comm(&com);
+        delete node;
+        node = new Node(delta,input_path,com);
+    }
 
-    node.save(output_path);
+    node->run();
+
+    node->save(output_path);
+    delete node;
     MPI_Finalize();
     return 0;
 }
