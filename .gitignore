@@ -12,3 +12,4 @@ _deps
 CMakeUserPresets.json
 sssp
 .vscode
+src/HPC2k25_MPI.egg-info/

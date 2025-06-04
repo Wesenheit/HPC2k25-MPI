@@ -17,7 +17,7 @@
 
 namespace fs = std::filesystem;
 using Bucket = std::list<int>;
-static int MAX = 5000;//(std::numeric_limits<int>::max)();
+static int MAX = 100000;//(std::numeric_limits<int>::max)();
 
 using Message = std::array<int, 2>; // v d message
 
