@@ -2,21 +2,29 @@
 #include "Node.hpp"
 #include <filesystem>
 
-#define USE_GRAPH true
-
 namespace fs = std::filesystem;
 int main(int argc, char** argv)
 {
-    MPI_Init(NULL,NULL);
+
+    bool graph = false;
     fs::path input_path = argv[1];
     fs::path output_path = argv[2];
+
+    for (int i = 1; i < argc; ++i) {
+            std::string arg = argv[i];
+            if (arg == "--graph" || arg == "-v") {
+                graph = true;
+            }
+        }
+    MPI_Init(NULL,NULL);
+
 
 
     int delta = 40;
     MPI_Comm com;
     Node *node = new Node(delta,input_path,MPI_COMM_WORLD);
 
-    if (USE_GRAPH)
+    if (graph)
     {
         node->get_graph_comm(&com);
         delete node;
