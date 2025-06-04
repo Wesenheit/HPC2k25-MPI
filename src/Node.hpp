@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include <list>
-#include <utility>
+#include <tuple>
 #include <filesystem>
 #include <array>
 #include <cassert>
@@ -20,6 +20,12 @@ using Bucket = std::list<int>;
 static int MAX = INT_MAX;
 
 using Message = std::array<int, 2>; // v d message
+
+typedef struct {
+    std::vector<int> dest_arr;
+    std::vector<MPI_Request> req_arr;
+    std::vector<Message*> mess_arr;
+} MessStruct;
 
 class Node
 {
@@ -42,7 +48,7 @@ class Node
     Lookup table; //lookup table, alows to
     //obtain the source of the target
     bool is_graph;
-    std::pair<std::vector<int>,std::vector<MPI_Request>> que;
+    MessStruct que;
 
     public:
         Node(int Delta,fs::path in, MPI_Comm com);

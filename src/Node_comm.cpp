@@ -47,12 +47,15 @@ void Node::relax(int u, int v, int d)
     else
     {
         int destination = table.get_node_for_value(v);
-        int data[2] = {v,d};
+        Message* mes = new Message;
+        *mes = {v,d};
         MPI_Request req;
-        que.first.push_back(destination);
-        que.second.push_back(req);
-        MPI_Isend(data,2,MPI_INT,destination,0,
-            world,&que.second.back());
+        que.dest_arr.push_back(destination);
+        que.req_arr.push_back(req);
+        que.mess_arr.push_back(mes);
+        MPI_Isend(mes,2,MPI_INT,destination,0,
+            world,&que.req_arr.back());
+
     }
 }
 
@@ -62,7 +65,7 @@ void Node::synchronize_normal()
     std::vector<int> count_to_send(size_world,0);
     std::vector<int> mess_to_recive(size_world,0);
 
-    for (auto element:que.first)
+    for (auto element:que.dest_arr)
     {
         count_to_send[element]++;
     }
@@ -70,7 +73,7 @@ void Node::synchronize_normal()
         mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 2 - wait for all messages
-    MPI_Waitall(que.second.size(),que.second.data(), MPI_STATUS_IGNORE);
+    MPI_Waitall(que.req_arr.size(),que.req_arr.data(), MPI_STATUS_IGNORE);
 
     //Step 3 - recive all messages
     int index = 0;
@@ -91,8 +94,13 @@ void Node::synchronize_normal()
     }
 
     //Step 4 - cleanup
-    que.first.clear();
-    que.second.clear();
+    que.req_arr.clear();
+    que.dest_arr.clear();
+    for (auto element: que.mess_arr)
+    {
+        delete element;
+    }
+    que.mess_arr.clear();
 }
 
 
@@ -103,7 +111,7 @@ void Node::synchronize_graph()
     std::vector<int> count_to_send(table.node.size(),0);
     std::vector<int> mess_to_recive(table.node.size(),0);
 
-    for (auto element:que.first)
+    for (auto element:que.dest_arr)
     {
         count_to_send[table.get_index(element)]++;
     }
@@ -111,7 +119,7 @@ void Node::synchronize_graph()
         mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 2 - wait for all messages
-    MPI_Waitall(que.second.size(),que.second.data(), MPI_STATUS_IGNORE);
+    MPI_Waitall(que.req_arr.size(),que.req_arr.data(), MPI_STATUS_IGNORE);
 
     //Step 3 - recive all messages
     int index = 0;
@@ -132,6 +140,11 @@ void Node::synchronize_graph()
     }
 
     //Step 4 - cleanup
-    que.first.clear();
-    que.second.clear();
+    que.req_arr.clear();
+    que.dest_arr.clear();
+    for (auto element: que.mess_arr)
+    {
+        delete element;
+    }
+    que.mess_arr.clear();
 }
