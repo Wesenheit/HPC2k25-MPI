@@ -42,7 +42,7 @@ class Node
     Lookup table; //lookup table, alows to
     //obtain the source of the target
     bool is_graph;
-    std::vector<std::pair<int,Message*>> que;
+    std::pair<std::vector<int>,std::vector<MPI_Request>> que;
 
     public:
         Node(int Delta,fs::path in, MPI_Comm com);
