@@ -64,6 +64,7 @@ void Node::run()
                 }
             }
         }
+        synchronize();
     k++;
     }
     while (true);
