@@ -65,11 +65,11 @@ class Node
         {
             if (is_graph)
             {
-                synchronize_normal();
+                synchronize_graph();
             }
             else
             {
-                synchronize_graph();
+                synchronize_normal();
             }
         }
         void synchronize_normal();
