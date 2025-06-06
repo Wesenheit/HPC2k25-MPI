@@ -12,6 +12,7 @@
 #include <array>
 #include <cassert>
 #include <mpi.h>
+#include <unordered_map>
 #include "Lookup.hpp"
 
 
