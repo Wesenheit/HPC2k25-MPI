@@ -2,10 +2,13 @@
 #include "Node.hpp"
 #include <filesystem>
 
+#define OPT true
+
 namespace fs = std::filesystem;
 int main(int argc, char** argv)
 {
 
+    float tau = 0.4;
     bool graph = false;
     fs::path input_path = argv[1];
     fs::path output_path = argv[2];
@@ -19,7 +22,6 @@ int main(int argc, char** argv)
     MPI_Init(NULL,NULL);
 
 
-
     int delta = 40;
     MPI_Comm com;
     Node *node = new Node(delta,input_path,MPI_COMM_WORLD);
@@ -30,9 +32,14 @@ int main(int argc, char** argv)
         delete node;
         node = new Node(delta,input_path,com);
     }
-
-    node->run();
-
+    if (OPT)
+    {
+        node->run_opt(tau);
+    }
+    else
+    {
+        node->run();
+    }
     node->save(output_path);
     delete node;
     MPI_Finalize();

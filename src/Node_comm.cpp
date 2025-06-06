@@ -21,7 +21,7 @@ int Node::all_reduce(int* value,MPI_Op op)
         world);
     return global;
 }
-void Node::relax(int u, int v, int d)
+void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
 {
     if (v >= lower && v <= upper)
     {
@@ -29,6 +29,7 @@ void Node::relax(int u, int v, int d)
         {
             tenative[v-lower] = d;
             int j = d / Delta;
+            if (bucket_th > 0 && j > bucket_th) j = bucket_th;
             if (j >= buckets.size())
             {
                 buckets.resize(j + 1, nullptr);
@@ -53,7 +54,7 @@ void Node::relax(int u, int v, int d)
         que.dest_arr.push_back(destination);
         que.req_arr.push_back(req);
         que.mess_arr.push_back(mes);
-        MPI_Isend(mes,2,MPI_INT,destination,0,
+        MPI_Isend(mes,1,MPI_mess,destination,0,
             world,&que.req_arr.back());
 
     }
@@ -85,10 +86,10 @@ void Node::synchronize_normal()
         }
         else
         {
-            int buff[2];
-            MPI_Recv(buff,2,MPI_INT,index,0,world,MPI_STATUS_IGNORE);
-            assert(buff[0] >= lower && buff[0] <=upper);
-            relax(0,buff[0],buff[1]);
+            Message buff;
+            MPI_Recv(&buff,1,MPI_mess,index,0,world,MPI_STATUS_IGNORE);
+            assert(buff.v >= lower && buff.v <=upper);
+            relax(0,buff.v,buff.distance);
             mess_to_recive[index]--;
         }
     }
@@ -131,10 +132,10 @@ void Node::synchronize_graph()
         }
         else
         {
-            int buff[2];
-            MPI_Recv(buff,2,MPI_INT,table.node[index],0,world,MPI_STATUS_IGNORE);
-            assert(buff[0] >= lower && buff[0] <=upper);
-            relax(0,buff[0],buff[1]);
+            Message buff;
+            MPI_Recv(&buff,1,MPI_mess,table.node[index],0,world,MPI_STATUS_IGNORE);
+            assert(buff.v >= lower && buff.v <=upper);
+            relax(0,buff.v,buff.distance);
             mess_to_recive[index]--;
         }
     }

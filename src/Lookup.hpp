@@ -1,12 +1,16 @@
 #ifndef Lookup_HPP
 #define Lookup_HPP
 #include <vector>
+
+using DVar = unsigned long long;
+using Vertex = int;
+
 class Lookup
 {
     public:
         std::vector<int> node;
-        std::vector<int> lower;
-        std::vector<int> upper;
+        std::vector<Vertex> lower;
+        std::vector<Vertex> upper;
         int size;
 
         Lookup()
@@ -16,7 +20,7 @@ class Lookup
             upper.resize(0);
             size = 0;
         }
-        void add(int n, int l, int u)
+        void add(int n, Vertex l, Vertex u)
         {
             node.push_back(n);
             lower.push_back(l);
@@ -27,7 +31,7 @@ class Lookup
         {
             return size;
         }
-        int get_index(int node)
+        Vertex get_index(int node)
         {
             for (int i = 0; i < this->node.size(); i++)
             {
@@ -38,16 +42,16 @@ class Lookup
             }
             return -1;
         }
-        int get_lower(int node)
+        Vertex get_lower(int node)
         {
             return lower[get_index(node)];
         }
-        int get_upper(int node)
+        Vertex get_upper(int node)
         {
             return upper[get_index(node)];
         }
 
-        int get_node_for_value(int value)
+        int get_node_for_value(Vertex value)
         {
             for (int i = 0; i < size;i++)
             {
