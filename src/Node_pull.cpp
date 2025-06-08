@@ -1,6 +1,5 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
-#include <mpi_proto.h>
 #include <ostream>
 
 void Node::send_request(Vertex u)
