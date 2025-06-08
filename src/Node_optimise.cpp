@@ -61,7 +61,7 @@ void Node::run_opt(float tau)
             bucket_th = k;
             int k_new = k+1;
 
-            while (k_new < buckets.size() && buckets[k])
+            while (k_new < buckets.size() && buckets[k] && buckets[k_new])
             {
                 Bucket& bucket = *buckets[k_new];
                 while (!bucket.empty())
@@ -101,8 +101,9 @@ void Node::run_opt(float tau)
         }
         while (all_reduce(&work_to_do,MPI_LOR));
 
-        int k_new;
 
+        int k_new;
+        /*
         //Estimate pull and push volumes
         int push = 0;
         int pull = 0;
@@ -128,7 +129,7 @@ void Node::run_opt(float tau)
         }
         int glob_pull = 2 * all_reduce(&pull, MPI_SUM);
         int glob_push = all_reduce(&push, MPI_SUM);
-
+        */
         if (true)//(glob_push < glob_pull)
         {
             //Heavy reduction

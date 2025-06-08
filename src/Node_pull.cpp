@@ -1,6 +1,5 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
-#include <ostream>
 #include <algorithm>
 
 void Node::send_request(Vertex u)
