@@ -103,7 +103,7 @@ void Node::run_opt(float tau)
 
 
         int k_new;
-        /*
+
         //Estimate pull and push volumes
         int push = 0;
         int pull = 0;
@@ -129,8 +129,8 @@ void Node::run_opt(float tau)
         }
         int glob_pull = 2 * all_reduce(&pull, MPI_SUM);
         int glob_push = all_reduce(&push, MPI_SUM);
-        */
-        if (true)//(glob_push < glob_pull)
+
+        if (glob_push < glob_pull)
         {
             //Heavy reduction
             for (auto u:deleted)
