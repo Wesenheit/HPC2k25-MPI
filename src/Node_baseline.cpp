@@ -13,7 +13,7 @@ void Node::run()
         if (k >= buckets.size())
             k = MAX;
 
-        k = all_reduce(&k,MPI_MIN);
+        k = all_reduce(&k,MPI_INT,MPI_MIN);
 
         if (k == MAX)
             break;
@@ -42,7 +42,7 @@ void Node::run()
             synchronize();
             work_to_do = (k < buckets.size() && buckets[k] && !buckets[k]->empty());
         }
-        while (all_reduce(&work_to_do,MPI_LOR));
+        while (all_reduce(&work_to_do,MPI_INT,MPI_LOR));
 
         //Heavy reduction
         for (auto u:deleted)

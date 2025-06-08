@@ -10,17 +10,6 @@ void Node::get_graph_comm(MPI_Comm *com)
         table.node.size(),table.node.data(),MPI_UNWEIGHTED,info,1,com);
 }
 
-int Node::all_reduce(int* value,MPI_Op op)
-{
-    int global;
-    MPI_Allreduce(value,
-        &global,
-        1,
-        MPI_INT,
-        op,
-        world);
-    return global;
-}
 void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
 {
     if (v >= lower && v <= upper)

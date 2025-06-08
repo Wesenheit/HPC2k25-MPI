@@ -68,7 +68,8 @@ class Node
     public:
         Node(int Delta,fs::path in, MPI_Comm com);
         void relax(Vertex u, Vertex v,DVar d,int bucket_th = -1);
-        int all_reduce(int* value,MPI_Op op);
+        template<typename T>
+        T all_reduce(T* value,MPI_Datatype type, MPI_Op op);
         void load_data(fs::path in, int rank);
         void get_graph_comm(MPI_Comm *com);
         void save(fs::path out)
@@ -113,6 +114,17 @@ class Node
         }
 };
 
-
+template <typename T>
+T Node::all_reduce(T* value,MPI_Datatype type,MPI_Op op)
+{
+    T global;
+    MPI_Allreduce(value,
+        &global,
+        1,
+        type,
+        op,
+        world);
+    return global;
+}
 
 #endif

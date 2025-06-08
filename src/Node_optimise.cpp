@@ -2,40 +2,9 @@
 #include "Node.hpp"
 #include <cstddef>
 
-bool compareMessages(const Message& m1, const Message& m2) {
-    return m1.v < m2.v;
-}
-
-DVar find_given_vertex(std::vector<Message>* arr, Vertex target)
-{
-    int start = 0;
-    int end = arr->size() - 1;
-
-    while (start <= end)
-    {
-        int mid = start + (end - start) / 2;
-        Vertex mid_value = (*arr)[mid].v;
-
-        if (mid_value == target)
-        {
-            return (*arr)[mid].distance;
-        }
-        else if (mid_value < target)
-        {
-            start = mid + 1;
-        }
-        else
-        {
-            end = mid - 1;
-        }
-    }
-    return -1;
-}
-
-
 void Node::run_opt(float tau)
 {
-    //max = all_reduce(&max,MPI_MAX);
+    max = all_reduce(&max,MPI_LONG_LONG_INT,MPI_MAX);
     int k = 0;
     int work_to_do;
     std::vector<bool> was_deleted(N,false);
@@ -50,12 +19,12 @@ void Node::run_opt(float tau)
         if (k >= buckets.size())
             k = MAX;
 
-        k = all_reduce(&k,MPI_MIN);
+        k = all_reduce(&k,MPI_INT,MPI_MIN);
 
         if (k == MAX)
             break;
 
-        global_settled = all_reduce(&settled_vertices, MPI_SUM);
+        global_settled = all_reduce(&settled_vertices, MPI_INT,MPI_SUM);
         if (global_settled > tau * N)
         {
             bucket_th = k;
@@ -83,10 +52,10 @@ void Node::run_opt(float tau)
                 {
                     int u = bucket.front();
                     bucket.pop_front();
-                    settled_vertices++;
                     if (!was_deleted[u])
                     {
                         was_deleted[u] = true;
+                        settled_vertices++;
                         if (bucket_th < 0)
                             deleted.push_back(u);
                     }
@@ -99,7 +68,7 @@ void Node::run_opt(float tau)
             synchronize();
             work_to_do = (k < buckets.size() && buckets[k] && !buckets[k]->empty());
         }
-        while (all_reduce(&work_to_do,MPI_LOR));
+        while (all_reduce(&work_to_do,MPI_INT,MPI_LOR));
 
 
         int k_new;
@@ -114,21 +83,19 @@ void Node::run_opt(float tau)
             push += long_count[u];
         }
         //Pull
-        k_new = k + 1;
-        while (k_new < buckets.size())
+
+        std::vector<Vertex> forward;
+        for (Vertex i = 0; i < N; i++)
         {
-            if (buckets[k_new])
+            if (!was_deleted[i])
             {
-                Bucket& bucket = *buckets[k_new];
-                for (Vertex v:bucket)
-                {
-                    pull += adjacency_list[v].size()*(tenative[v-lower]-(k+1)*Delta)/max;
-                }
+                forward.push_back(i);
+                pull++;
             }
-            k_new++;
         }
-        int glob_pull = 2 * all_reduce(&pull, MPI_SUM);
-        int glob_push = all_reduce(&push, MPI_SUM);
+
+        int glob_pull = 2 * all_reduce(&pull,MPI_INT, MPI_SUM);
+        int glob_push = all_reduce(&push,MPI_INT, MPI_SUM);
 
         if (glob_push < glob_pull)
         {
@@ -145,25 +112,16 @@ void Node::run_opt(float tau)
         else
         {
             synchronize();
-            k_new = k+1;
             std::unordered_map<Vertex, std::vector<std::pair<Vertex,DVar>>> what_one_needs;
-            while (k_new < buckets.size())
+            for (Vertex v:forward)
             {
-                if (buckets[k_new])
-                {
-                    Bucket& bucket = *buckets[k_new];
-                    for (Vertex v:bucket)
+                for (const auto& [u, d] : adjacency_list[v]) {
+                    if (d < tenative[v-lower]-k*Delta)
                     {
-                        for (const auto& [u, d] : adjacency_list[v]) {
-                            if (d < tenative[v-lower]-k*Delta)
-                            {
-                                send_request(u);
-                                what_one_needs[v].push_back({u,d});
-                            }
-                        }
+                        send_request(u);
+                        what_one_needs[v].push_back({u,d});
                     }
                 }
-                k_new++;
             }
 
             auto answers = accept_requests(k);

@@ -28,9 +28,10 @@ def generate_graph(args):
 
 
     source = 0
-    sssp = nk.distance.Dijkstra(weighted_graph, source)
-    sssp.run()
-    distances = sssp.getDistances()
+    if args.true:
+        sssp = nk.distance.Dijkstra(weighted_graph, source)
+        sssp.run()
+        distances = sssp.getDistances()
 
     start = 0
     for pid in range(args.k):
@@ -49,9 +50,10 @@ def generate_graph(args):
                     distance = weighted_graph.weight(u,v)
                     f.write(f"{u} {v} {int(distance)}\n")
 
-        with open(os.path.join(args.p,file_out),"w") as f:
-            for u in range(start, end + 1):
-                f.write(f"{int(distances[u])}\n")
+        if args.true:
+            with open(os.path.join(args.p,file_out),"w") as f:
+                for u in range(start, end + 1):
+                    f.write(f"{int(distances[u])}\n")
 
         start = end + 1
 
@@ -63,5 +65,6 @@ if __name__=="__main__":
     parser.add_argument("-k",type = int,required=True)
     parser.add_argument("-p",type=str,default=".")
     parser.add_argument("-w",type=int,default=100)
+    parser.add_argument("--true", action='store_true', help="generate true distances")
     args = parser.parse_args()
     generate_graph(args)
