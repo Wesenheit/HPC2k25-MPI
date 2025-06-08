@@ -1,7 +1,7 @@
 #ifndef Lookup_HPP
 #define Lookup_HPP
 #include <vector>
-
+#include <iostream>
 using DVar = unsigned long long;
 using Vertex = int;
 

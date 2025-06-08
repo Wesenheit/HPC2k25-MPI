@@ -7,9 +7,7 @@
 #include <string>
 #include <vector>
 #include <list>
-#include <tuple>
 #include <filesystem>
-#include <array>
 #include <cassert>
 #include <mpi.h>
 #include <unordered_map>
@@ -27,11 +25,19 @@ typedef struct {
     DVar distance;
 } Message;
 
+
 typedef struct {
     std::vector<int> dest_arr;
     std::vector<MPI_Request> req_arr;
     std::vector<Message*> mess_arr;
 } MessStruct;
+
+
+typedef struct {
+    std::vector<int> dest_arr;
+    std::vector<MPI_Request> req_arr;
+    std::vector<Vertex*> mess_arr;
+} PullStruct;
 
 class Node
 {
@@ -45,9 +51,13 @@ class Node
     int size_world; //number of processes
 
     std::unordered_map<Vertex, std::vector<std::pair<Vertex, DVar>>> adjacency_list;
+    std::vector<int>long_count;
+    DVar max;
 
     std::vector<Bucket*> buckets; //vector of buckets
     std::vector<DVar> tenative; //tenative distance
+
+    PullStruct pull_que;
 
     Lookup table; //lookup table, alows to
     //obtain the source of the target
@@ -87,6 +97,10 @@ class Node
         void synchronize_graph();
         void construct_lookup_table();
         void run();
+
+        void send_request(Vertex u);
+        std::unordered_map<Vertex,DVar> accept_requests(int k);
+
         void run_opt(float tau);
         void run_pruning();
         ~Node()

@@ -1,6 +1,7 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
 #include <cassert>
+#include <limits>
 
 
 void Node::load_data(fs::path in, int rank)
@@ -15,10 +16,20 @@ void Node::load_data(fs::path in, int rank)
 
     Vertex u,v;
     DVar d;
+    max = 0;
+    long_count = std::vector<int>(N,0);
     while (inputFile >> u >> v >> d) {
         adjacency_list[u].push_back({v,d});
         adjacency_list[v].push_back({u,d});
-
+        if (d>Delta)
+        {
+            long_count[v]++;
+            long_count[u]++;
+        }
+        if (d > max)
+        {
+            max = d;
+        }
     }
 
     int block_lengths[2] = {1, 1};
@@ -49,7 +60,7 @@ Node::Node(int Delta,fs::path in, MPI_Comm com)
 
     load_data(in,rank);
 
-    tenative = std::vector<DVar>(upper-lower+1,MAX);
+    tenative = std::vector<DVar>(upper-lower+1,std::numeric_limits<DVar>::max());
     if (lower == 0)
     {
         tenative[0] = 0;

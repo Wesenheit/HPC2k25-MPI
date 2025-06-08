@@ -1,14 +1,12 @@
 #include <mpi.h>
 #include "Node.hpp"
-#include <filesystem>
 
 #define OPT true
 
-namespace fs = std::filesystem;
 int main(int argc, char** argv)
 {
-
     float tau = 0.4;
+    int delta = 40;
     bool graph = false;
     fs::path input_path = argv[1];
     fs::path output_path = argv[2];
@@ -21,8 +19,6 @@ int main(int argc, char** argv)
         }
     MPI_Init(NULL,NULL);
 
-
-    int delta = 40;
     MPI_Comm com;
     Node *node = new Node(delta,input_path,MPI_COMM_WORLD);
 
