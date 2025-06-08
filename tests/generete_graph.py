@@ -4,6 +4,7 @@ import os
 import numpy as np
 from email.parser import Parser
 from random import random
+import sys
 
 
 def generate_graph(args):
@@ -12,11 +13,24 @@ def generate_graph(args):
     # R-MAT probabilities for quadrants (a, b, c, d)
     # Common values: a=0.57, b=0.19, c=0.19, d=0.05
     rmat_gen = nk.generators.RmatGenerator(args.scale, args.edge_factor, 0.57, 0.19, 0.19, 0.05)
-
     G = rmat_gen.generate()
+    cc = nk.components.ConnectedComponents(G)
+    cc.run()
+    G = nk.components.ConnectedComponents.extractLargestConnectedComponent(G, compactGraph=True)
+
+    weighted_graph = nk.Graph(G.numberOfNodes(), weighted=True, directed=G.isDirected())
+    for u, v in G.iterEdges():
+        weight = np.random.randint(0,args.w+1)
+        weighted_graph.addEdge(u, v, weight)
     N = G.numberOfNodes()
     nodes_per_part = N // args.k
     remainder = N % args.k
+
+
+    source = 0
+    sssp = nk.distance.Dijkstra(weighted_graph, source)
+    sssp.run()
+    distances = sssp.getDistances()
 
     start = 0
     for pid in range(args.k):
@@ -25,14 +39,19 @@ def generate_graph(args):
 
             # Write the partition to a file
         filename = f"{pid}.in"
+        file_out = f"{pid}_f.out"
         with open(os.path.join(args.p,filename), "w") as f:
             f.write(f"{N} ")
             f.write(f"{start} {end}\n")
             for u in range(start, end + 1):
                 neighbors = G.iterNeighbors(u)
                 for v in neighbors:
-                    distance = np.random.randint(0,args.w+1)
-                    f.write(f"{u} {v} {distance}\n")
+                    distance = weighted_graph.weight(u,v)
+                    f.write(f"{u} {v} {int(distance)}\n")
+
+        with open(os.path.join(args.p,file_out),"w") as f:
+            for u in range(start, end + 1):
+                f.write(f"{int(distances[u])}\n")
 
         start = end + 1
 
