@@ -100,7 +100,20 @@ class Node
         void run();
 
         void send_request(Vertex u);
-        std::unordered_map<Vertex,DVar> accept_requests(int k);
+        std::unordered_map<Vertex,DVar> accept_requests(int k)
+        {
+            if (is_graph)
+            {
+                return accept_requests_graph(k);
+            }
+            else
+            {
+                return accept_requests_normal(k);
+            }
+        }
+        std::unordered_map<Vertex,DVar> accept_requests_normal(int k);
+        std::unordered_map<Vertex,DVar> accept_requests_graph(int k);
+
 
         void run_opt(float tau);
         void run_pruning();

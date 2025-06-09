@@ -22,7 +22,7 @@ void Node::send_request(Vertex u)
     MPI_Isend(data, 1, MPI_INT, dest, 1, world,&pull_que.req_arr.back());
 }
 
-std::unordered_map<Vertex,DVar> Node::accept_requests(int k)
+std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
 {
     //Step 1 - measure total amount of messages
     std::vector<int> count_to_send(size_world,0);
@@ -87,8 +87,6 @@ std::unordered_map<Vertex,DVar> Node::accept_requests(int k)
         MPI_Send(&mess, 1, MPI_mess, dest, 2, world);
     }
 
-    MPI_Barrier(world);
-
     //Step 5 recive all answers
     index = 0;
     std::unordered_map<Vertex,DVar> out;
@@ -102,6 +100,98 @@ std::unordered_map<Vertex,DVar> Node::accept_requests(int k)
         {
             Message buff;
             MPI_Recv(&buff,1,MPI_mess,index,2,world,MPI_STATUS_IGNORE);
+            out[buff.v] = buff.distance;
+            answers[index]--;
+        }
+    }
+    pull_que.req_arr.clear();
+    pull_que.dest_arr.clear();
+    for (auto element: pull_que.mess_arr)
+    {
+        delete element;
+    }
+    pull_que.mess_arr.clear();
+    return out;
+}
+
+std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
+{
+    int degree = table.node.size();
+    //Step 1 - measure total amount of messages
+    std::vector<int> count_to_send(degree,0);
+    std::vector<int> mess_to_recive(degree,0);
+    for (auto element:pull_que.dest_arr)
+    {
+        count_to_send[table.get_index(element)]++;
+    }
+
+    //Step 2 - wait for all messages
+    MPI_Waitall(pull_que.req_arr.size(),pull_que.req_arr.data(), MPI_STATUS_IGNORE);
+
+    MPI_Neighbor_alltoall(count_to_send.data(),1,MPI_INT,
+        mess_to_recive.data(),1,MPI_INT,world);
+
+    //Step 3 - recive all messages
+    std::vector<int> requests_to_return(degree,0);
+    std::vector<int> answers(degree,0);
+    int index = 0;
+    std::vector<std::pair<int,Vertex>> requested_vertices;
+
+    while (index < degree)
+    {
+        if (mess_to_recive[index] == 0)
+        {
+            index++;
+        }
+        else
+        {
+
+            Vertex u;
+            MPI_Recv(&u,1,MPI_INT,table.node[index],1,world,MPI_STATUS_IGNORE);
+            assert(u >= lower && u <=upper);
+            bool found = false;
+            if (k < buckets.size() && buckets[k])
+            {
+                found = std::find(buckets[k]->begin(), buckets[k]->end(),
+                    u) != buckets[k]->end();
+            }
+
+            if (found && tenative[u-lower] > k*Delta)
+            {
+                requests_to_return[index]++;
+                requested_vertices.push_back({table.node[index],u});
+            }
+            mess_to_recive[index]--;
+
+        }
+    }
+
+    //Step 4 Send numbers of answeres to recieve
+    MPI_Alltoall(requests_to_return.data(),1,MPI_INT,
+        answers.data(),1,MPI_INT,world);
+
+    MessStruct returns;
+    for (auto const [dest,u]:requested_vertices)
+    {
+        Message mess;
+        mess.v = u;
+        mess.distance = tenative[u-lower];
+        MPI_Send(&mess, 1, MPI_mess, dest, 2, world);
+    }
+
+    //Step 5 recive all answers
+    index = 0;
+    std::unordered_map<Vertex,DVar> out;
+    while (index < degree)
+    {
+        if (answers[index] == 0)
+        {
+            index++;
+        }
+        else
+        {
+            Message buff;
+            MPI_Recv(&buff,1,MPI_mess,table.node[index],2,world,MPI_STATUS_IGNORE);
             out[buff.v] = buff.distance;
             answers[index]--;
         }
