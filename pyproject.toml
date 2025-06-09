@@ -4,9 +4,9 @@ version = "0.1.0"
 description = "HPC2k25 MPI project at MIMUW"
 authors = [{ name = "Mateusz Kapusta", email = "mr.kapusta@student.uw.edu.pl" }]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "==3.10"
 dependencies = [
-    "matplotlib",
-    "numpy",
-    "networkit@git+https://github.com/networkit/networkit",
+    "numpy==1.25",
+    "networkit; sys_platform == 'linux'",
+    "networkit@git+https://github.com/networkit/networkit; sys_platform == 'darwin'",
 ]

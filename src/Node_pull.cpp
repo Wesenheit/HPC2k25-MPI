@@ -1,7 +1,6 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
 #include <algorithm>
-#include <mpi_proto.h>
 #include <set>
 
 auto nothing_Vertex = [](Vertex* val) {};
