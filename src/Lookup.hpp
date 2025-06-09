@@ -1,5 +1,6 @@
 #ifndef Lookup_HPP
 #define Lookup_HPP
+#include <iterator>
 #include <vector>
 #include <iostream>
 using DVar = unsigned long long;
@@ -11,6 +12,7 @@ class Lookup
         std::vector<int> node;
         std::vector<Vertex> lower;
         std::vector<Vertex> upper;
+        std::vector<int> how_many;
         int size;
 
         Lookup()
@@ -18,14 +20,25 @@ class Lookup
             node.resize(0);
             lower.resize(0);
             upper.resize(0);
+            how_many.resize(0);
             size = 0;
         }
         void add(int n, Vertex l, Vertex u)
         {
-            node.push_back(n);
-            lower.push_back(l);
-            upper.push_back(u);
-            size++;
+            auto it = std::find(node.begin(),node.end(),n);
+            if (it==node.end())
+            {
+                node.push_back(n);
+                lower.push_back(l);
+                upper.push_back(u);
+                how_many.push_back(1);
+                size++;
+            }
+            else
+            {
+                auto index = std::distance(node.begin(), it);
+                how_many[index]++;
+            }
         }
         int leng()
         {

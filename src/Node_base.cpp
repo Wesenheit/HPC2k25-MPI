@@ -115,7 +115,7 @@ void Node::construct_lookup_table()
                 for (const auto& [v, w] : pair.second) {
                     if (((u >= data[0] && u <= data[1]) ||
                     (v >= data[0] && v <= data[1]))
-                    && (table.get_index(i) == -1) && i != rank)
+                    && i != rank)
                     {
                         table.add(i, data[0], data[1]);
                     }
@@ -136,7 +136,7 @@ void Node::construct_lookup_table()
                 for (const auto& [v, w] : pair.second) {
                     if (((u >= data[0] && u <= data[1]) ||
                     (v >= data[0] && v <= data[1]))
-                    && (new_table.get_index(i) == -1) && i != rank)
+                    && i != rank)
                     {
                         new_table.add(i, data[0], data[1]);
                     }

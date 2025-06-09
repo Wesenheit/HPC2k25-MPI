@@ -17,9 +17,8 @@ void Node::get_graph_comm(MPI_Comm *com)
     MPI_Info_create(&info);
     MPI_Info_set(info, "no_local", "true");
     MPI_Info_set(info, "reorder", "true");
-
-    MPI_Dist_graph_create_adjacent(world,table.node.size(),table.node.data(),MPI_UNWEIGHTED,
-        table.node.size(),table.node.data(),MPI_UNWEIGHTED,info,1,com);
+    MPI_Dist_graph_create_adjacent(world,table.node.size(),table.node.data(),table.how_many.data(),
+        table.node.size(),table.node.data(),table.how_many.data(),info,1,com);
 }
 
 void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
