@@ -78,7 +78,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
     MPI_Alltoall(requests_to_return.data(),1,MPI_INT,
         answers.data(),1,MPI_INT,world);
 
-    MessStruct returns;
+    //MessStruct returns;
     for (auto const [dest,u]:requested_vertices)
     {
         Message mess;
@@ -170,7 +170,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     MPI_Neighbor_alltoall(requests_to_return.data(),1,MPI_INT,
         answers.data(),1,MPI_INT,world);
 
-    MessStruct returns;
+    //MessStruct returns;
     for (auto const [dest,u]:requested_vertices)
     {
         Message mess;

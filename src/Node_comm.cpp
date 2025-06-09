@@ -1,4 +1,8 @@
 #include "Node.hpp"
+#include <mpi_proto.h>
+
+#define MAX_QUE_SIZE 128
+
 void Node::get_graph_comm(MPI_Comm *com)
 {
     MPI_Info info;
@@ -45,7 +49,16 @@ void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
         que.mess_arr.push_back(mes);
         MPI_Isend(mes,1,MPI_mess,destination,0,
             world,&que.req_arr.back());
-
+        if (que.req_arr.size() > MAX_QUE_SIZE)
+        {
+            MPI_Waitall(que.req_arr.size(), que.req_arr.data(), MPI_STATUS_IGNORE);
+            for (auto element:que.mess_arr)
+            {
+                delete element;
+            }
+            que.mess_arr.clear();
+            que.req_arr.clear();
+        }
     }
 }
 
