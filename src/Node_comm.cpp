@@ -69,7 +69,7 @@ void Node::synchronize_normal()
     //Step 1 - measure total amount of messages
     std::vector<int> count_to_send(size_world,0);
     std::vector<int> mess_to_recive(size_world,0);
-
+    std::cout<<que.dest_arr.size()<<std::endl;
     for (auto element:que.dest_arr)
     {
         count_to_send[element]++;
