@@ -129,6 +129,7 @@ void Node::run_opt(float tau)
             {
                 for (auto [u,d]:vector)
                 {
+                    assert(v>=lower && v<=upper);
                     relax(u, v, answers[u]+d);
                 }
             }
