@@ -1,6 +1,15 @@
 #include "Node.hpp"
 
-#define MAX_QUE_SIZE 128
+void Node::clear_mess_que()
+{
+    MPI_Waitall(que.req_arr.size(), que.req_arr.data(), MPI_STATUS_IGNORE);
+    for (auto element:que.mess_arr)
+    {
+        delete element;
+    }
+    que.mess_arr.clear();
+    que.req_arr.clear();
+}
 
 void Node::get_graph_comm(MPI_Comm *com)
 {
@@ -50,13 +59,7 @@ void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
 
         if (que.req_arr.size() > MAX_QUE_SIZE)
         {
-            MPI_Waitall(que.req_arr.size(), que.req_arr.data(), MPI_STATUS_IGNORE);
-            for (auto element:que.mess_arr)
-            {
-                delete element;
-            }
-            que.mess_arr.clear();
-            que.req_arr.clear();
+            clear_mess_que();
         }
     }
 }
@@ -73,7 +76,8 @@ void Node::synchronize_normal()
     }
 
     //Step 2 - wait for all messages
-    MPI_Waitall(que.req_arr.size(),que.req_arr.data(), MPI_STATUS_IGNORE);
+    clear_mess_que();
+
 
     MPI_Alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
@@ -97,13 +101,7 @@ void Node::synchronize_normal()
     }
 
     //Step 4 - cleanup
-    que.req_arr.clear();
     que.dest_arr.clear();
-    for (auto element: que.mess_arr)
-    {
-        delete element;
-    }
-    que.mess_arr.clear();
 }
 
 
@@ -120,7 +118,7 @@ void Node::synchronize_graph()
     }
 
     //Step 2 - wait for all messages
-    MPI_Waitall(que.req_arr.size(),que.req_arr.data(), MPI_STATUS_IGNORE);
+    clear_mess_que();
 
     MPI_Neighbor_alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
@@ -144,11 +142,5 @@ void Node::synchronize_graph()
     }
 
     //Step 4 - cleanup
-    que.req_arr.clear();
     que.dest_arr.clear();
-    for (auto element: que.mess_arr)
-    {
-        delete element;
-    }
-    que.mess_arr.clear();
 }

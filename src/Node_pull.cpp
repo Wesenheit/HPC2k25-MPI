@@ -2,6 +2,17 @@
 #include "Node.hpp"
 #include <algorithm>
 
+void Node::clear_mess_que_pull()
+{
+    MPI_Waitall(pull_que.req_arr.size(), pull_que.req_arr.data(), MPI_STATUS_IGNORE);
+    for (auto element:pull_que.mess_arr)
+    {
+        delete element;
+    }
+    pull_que.mess_arr.clear();
+    pull_que.req_arr.clear();
+}
+
 void Node::send_request(Vertex u)
 {
     int dest;
@@ -13,13 +24,17 @@ void Node::send_request(Vertex u)
     {
         dest = table.get_node_for_value(u);
     }
-    MPI_Request req;
     Vertex *data = new Vertex;
     *data = u;
     pull_que.dest_arr.push_back(dest);
-    pull_que.req_arr.push_back(req);
+    pull_que.req_arr.push_back(MPI_REQUEST_NULL);
     pull_que.mess_arr.push_back(data);
     MPI_Isend(data, 1, MPI_INT, dest, 1, world,&pull_que.req_arr.back());
+
+    if (pull_que.req_arr.size() > MAX_QUE_SIZE)
+    {
+        clear_mess_que_pull();
+    }
 }
 
 std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
@@ -34,7 +49,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
     }
 
     //Step 2 - wait for all messages
-    MPI_Waitall(pull_que.req_arr.size(),pull_que.req_arr.data(), MPI_STATUS_IGNORE);
+    clear_mess_que_pull();
 
     MPI_Alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
@@ -104,13 +119,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
             answers[index]--;
         }
     }
-    pull_que.req_arr.clear();
     pull_que.dest_arr.clear();
-    for (auto element: pull_que.mess_arr)
-    {
-        delete element;
-    }
-    pull_que.mess_arr.clear();
     return out;
 }
 
@@ -126,7 +135,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     }
 
     //Step 2 - wait for all messages
-    MPI_Waitall(pull_que.req_arr.size(),pull_que.req_arr.data(), MPI_STATUS_IGNORE);
+    clear_mess_que_pull();
 
     MPI_Neighbor_alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
@@ -196,12 +205,6 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
             answers[index]--;
         }
     }
-    pull_que.req_arr.clear();
     pull_que.dest_arr.clear();
-    for (auto element: pull_que.mess_arr)
-    {
-        delete element;
-    }
-    pull_que.mess_arr.clear();
     return out;
 }

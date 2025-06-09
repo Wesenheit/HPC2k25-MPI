@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include "Lookup.hpp"
 
+#define MAX_QUE_SIZE 16
 
 namespace fs = std::filesystem;
 using Bucket = std::list<int>;
@@ -98,6 +99,9 @@ class Node
         void synchronize_graph();
         void construct_lookup_table();
         void run();
+
+        void clear_mess_que();
+        void clear_mess_que_pull();
 
         void send_request(Vertex u);
         std::unordered_map<Vertex,DVar> accept_requests(int k)
