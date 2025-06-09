@@ -1,6 +1,7 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
 #include <algorithm>
+#include <mpi_proto.h>
 #include <set>
 
 auto nothing_Vertex = [](Vertex* val) {};
@@ -72,17 +73,17 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
     int index = 0;
     std::set<std::pair<int,Vertex>> requested_vertices;
 
-    while (index < size_world)
-    {
-        if (mess_to_recive[index] == 0)
-        {
-            index++;
-        }
-        else
-        {
+    std::vector<MPI_Request> req_arr;
+    std::vector<Vertex*> mess_arr;
+    std::vector<int> index_arr;
 
-            Vertex u;
-            MPI_Recv(&u,1,MPI_INT,index,1,world,MPI_STATUS_IGNORE);
+    auto clean = [&,this]()
+    {
+        MPI_Waitall(req_arr.size(), req_arr.data(), MPI_STATUS_IGNORE);
+        for (int i = 0;i < req_arr.size();i++)
+        {
+            Vertex u = *mess_arr[i];
+            int index = index_arr[i];
             assert(u >= lower && u <=upper);
             bool found = false;
             if (deleted.size() > 0)
@@ -99,10 +100,33 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
                     requested_vertices.insert({index,u});
                 }
             }
+            delete mess_arr[i];
+        }
+        req_arr.clear();
+        mess_arr.clear();
+        index_arr.clear();
+    };
+
+    while (index < size_world)
+    {
+        if (mess_to_recive[index] == 0)
+        {
+            index++;
+        }
+        else
+        {
+
+            Vertex* u = new Vertex;
+            mess_arr.push_back(u);
+            req_arr.push_back(MPI_REQUEST_NULL);
+            index_arr.push_back(index);
+            MPI_Irecv(u,1,MPI_INT,index,1,world,&req_arr.back());
             mess_to_recive[index]--;
+            if (req_arr.size() > MAX_QUE_SIZE)
+                clean();
         }
     }
-
+    clean();
     //Step 4 Send numbers of answeres to recieve
     MPI_Alltoall(requests_to_return.data(),1,MPI_INT,
         answers.data(),1,MPI_INT,world);
@@ -184,17 +208,16 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     std::vector<int> answers(degree,0);
     int index = 0;
     std::set<std::pair<int,Vertex>> requested_vertices;
-
-    while (index < degree)
+    std::vector<MPI_Request> req_arr;
+    std::vector<Vertex*> mess_arr;
+    std::vector<int> index_arr;
+    auto clean = [&,this]()
     {
-        if (mess_to_recive[index] == 0)
+        MPI_Waitall(req_arr.size(), req_arr.data(), MPI_STATUS_IGNORE);
+        for (int i = 0;i < req_arr.size();i++)
         {
-            index++;
-        }
-        else
-        {
-            Vertex u;
-            MPI_Recv(&u,1,MPI_INT,table.node[index],1,world,MPI_STATUS_IGNORE);
+            Vertex u = *mess_arr[i];
+            int index = index_arr[i];
             assert(u >= lower && u <=upper);
             bool found = false;
             if (deleted.size() > 0)
@@ -205,15 +228,38 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
 
             if (found && tenative[u-lower] >= k*Delta)
             {
-                if (requested_vertices.find({table.node[index],u}) == requested_vertices.end())
+                if (requested_vertices.find({index,u}) == requested_vertices.end())
                 {
                     requests_to_return[index]++;
-                    requested_vertices.insert({table.node[index],u});
+                    requested_vertices.insert({index,u});
                 }
             }
+            delete mess_arr[i];
+        }
+        req_arr.clear();
+        mess_arr.clear();
+        index_arr.clear();
+    };
+
+    while (index < degree)
+    {
+        if (mess_to_recive[index] == 0)
+        {
+            index++;
+        }
+        else
+        {
+            Vertex* u = new Vertex;
+            mess_arr.push_back(u);
+            req_arr.push_back(MPI_REQUEST_NULL);
+            index_arr.push_back(table.node[index]);
+            MPI_Irecv(u,1,MPI_INT,table.node[index],1,world,&req_arr.back());
             mess_to_recive[index]--;
+            if (req_arr.size() > MAX_QUE_SIZE)
+                clean();
         }
     }
+    clean();
     //Step 4 Send numbers of answeres to recieve
     MPI_Neighbor_alltoall(requests_to_return.data(),1,MPI_INT,
         answers.data(),1,MPI_INT,world);
