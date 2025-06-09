@@ -42,12 +42,12 @@ void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
         int destination = table.get_node_for_value(v);
         Message* mes = new Message;
         *mes = {v,d};
-        MPI_Request req;
         que.dest_arr.push_back(destination);
-        que.req_arr.push_back(req);
+        que.req_arr.push_back(MPI_REQUEST_NULL);
         que.mess_arr.push_back(mes);
         MPI_Isend(mes,1,MPI_mess,destination,0,
             world,&que.req_arr.back());
+
         if (que.req_arr.size() > MAX_QUE_SIZE)
         {
             MPI_Waitall(que.req_arr.size(), que.req_arr.data(), MPI_STATUS_IGNORE);
@@ -71,11 +71,12 @@ void Node::synchronize_normal()
     {
         count_to_send[element]++;
     }
-    MPI_Alltoall(count_to_send.data(),1,MPI_INT,
-        mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 2 - wait for all messages
     MPI_Waitall(que.req_arr.size(),que.req_arr.data(), MPI_STATUS_IGNORE);
+
+    MPI_Alltoall(count_to_send.data(),1,MPI_INT,
+        mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 3 - recive all messages
     int index = 0;
@@ -117,11 +118,12 @@ void Node::synchronize_graph()
     {
         count_to_send[table.get_index(element)]++;
     }
-    MPI_Neighbor_alltoall(count_to_send.data(),1,MPI_INT,
-        mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 2 - wait for all messages
     MPI_Waitall(que.req_arr.size(),que.req_arr.data(), MPI_STATUS_IGNORE);
+
+    MPI_Neighbor_alltoall(count_to_send.data(),1,MPI_INT,
+        mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 3 - recive all messages
     int index = 0;
