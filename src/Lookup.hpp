@@ -2,7 +2,8 @@
 #define Lookup_HPP
 #include <iterator>
 #include <vector>
-#include <iostream>
+#include <algorithm>
+
 using DVar = unsigned long long;
 using Vertex = int;
 
