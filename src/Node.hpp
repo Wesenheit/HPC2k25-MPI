@@ -11,6 +11,8 @@
 #include <cassert>
 #include <mpi.h>
 #include <unordered_map>
+#include <functional>
+
 #include "Lookup.hpp"
 
 #define MAX_QUE_SIZE 128
@@ -101,8 +103,8 @@ class Node
         void construct_lookup_table();
         void run();
 
-        void clear_mess_que();
-        void clear_mess_que_pull();
+        void clear_mess_que(std::function<void(Message*)> fun);
+        void clear_mess_que_pull(std::function<void(Vertex*)> fun);
 
         void send_request(Vertex u);
         std::unordered_map<Vertex,DVar> accept_requests(int k)

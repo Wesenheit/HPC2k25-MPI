@@ -3,11 +3,15 @@
 #include <algorithm>
 #include <set>
 
-void Node::clear_mess_que_pull()
+auto nothing_Vertex = [](Vertex* val) {};
+auto nothing_Message = [](Message* val) {};
+
+void Node::clear_mess_que_pull(std::function<void(Vertex*)> fun)
 {
     MPI_Waitall(pull_que.req_arr.size(), pull_que.req_arr.data(), MPI_STATUS_IGNORE);
     for (auto element:pull_que.mess_arr)
     {
+        fun(element);
         delete element;
     }
     pull_que.mess_arr.clear();
@@ -38,7 +42,7 @@ void Node::send_request(Vertex u)
 
     if (pull_que.req_arr.size() > MAX_QUE_SIZE)
     {
-        clear_mess_que_pull();
+        clear_mess_que_pull(nothing_Vertex);
     }
 }
 
@@ -55,7 +59,8 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
     }
 
     //Step 2 - wait for all messages
-    clear_mess_que_pull();
+    clear_mess_que_pull(nothing_Vertex);
+    pull_que.dest.clear();
 
     MPI_Alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
@@ -103,17 +108,33 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
         answers.data(),1,MPI_INT,world);
 
     //MessStruct returns;
+
     for (auto const [dest,u]:requested_vertices)
     {
-        Message mess;
-        mess.v = u;
-        mess.distance = tenative[u-lower];
-        MPI_Send(&mess, 1, MPI_mess, dest, 2, world);
+        Message *mes = new Message;
+        mes->v = u;
+        mes->distance = tenative[u-lower];
+        que.req_arr.push_back(MPI_REQUEST_NULL);
+        que.mess_arr.push_back(mes);
+        MPI_Isend(mes,1,MPI_mess,dest,2,
+            world,&que.req_arr.back());
+
+        if (que.req_arr.size() > MAX_QUE_SIZE)
+        {
+            clear_mess_que(nothing_Message);
+        }
     }
+    clear_mess_que(nothing_Message);
 
     //Step 5 recive all answers
     index = 0;
     std::unordered_map<Vertex,DVar> out;
+
+    auto save = [&out](Message * val)
+    {
+        out[val->v] = val->distance;
+    };
+
     while (index < size_world)
     {
         if (answers[index] == 0)
@@ -122,12 +143,19 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
         }
         else
         {
-            Message buff;
-            MPI_Recv(&buff,1,MPI_mess,index,2,world,MPI_STATUS_IGNORE);
-            out[buff.v] = buff.distance;
+            Message * buff = new Message;
+            que.req_arr.push_back(MPI_REQUEST_NULL);
+            que.mess_arr.push_back(buff);
+            MPI_Irecv(buff,1,MPI_mess,index,2,world,&que.req_arr.back());
             answers[index]--;
+            if (que.req_arr.size() > MAX_QUE_SIZE)
+            {
+                clear_mess_que(save);
+            }
         }
     }
+    clear_mess_que(save);
+
     pull_que.dest.clear();
     return out;
 }
@@ -145,7 +173,8 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     }
 
     //Step 2 - wait for all messages
-    clear_mess_que_pull();
+    clear_mess_que_pull(nothing_Vertex);
+    pull_que.dest.clear();
 
     MPI_Neighbor_alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
@@ -192,16 +221,32 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     //MessStruct returns;
     for (auto const [dest,u]:requested_vertices)
     {
-        Message mess;
-        mess.v = u;
-        mess.distance = tenative[u-lower];
-        MPI_Send(&mess, 1, MPI_mess, dest, 2, world);
-    }
+        Message *mes = new Message;
+        mes->v = u;
+        mes->distance = tenative[u-lower];
+        que.req_arr.push_back(MPI_REQUEST_NULL);
+        que.mess_arr.push_back(mes);
+        MPI_Isend(mes,1,MPI_mess,dest,2,
+            world,&que.req_arr.back());
 
+        if (que.req_arr.size() > MAX_QUE_SIZE)
+        {
+            clear_mess_que(nothing_Message);
+        }
+    }
+    clear_mess_que(nothing_Message);
+
+    //Step 5 recive all answers
     //Step 5 recive all answers
     index = 0;
     std::unordered_map<Vertex,DVar> out;
-    while (index < degree)
+
+    auto save = [&out](Message * val)
+    {
+        out[val->v] = val->distance;
+    };
+
+    while (index < size_world)
     {
         if (answers[index] == 0)
         {
@@ -209,12 +254,17 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
         }
         else
         {
-            Message buff;
-            MPI_Recv(&buff,1,MPI_mess,table.node[index],2,world,MPI_STATUS_IGNORE);
-            out[buff.v] = buff.distance;
+            Message * buff = new Message;
+            que.req_arr.push_back(MPI_REQUEST_NULL);
+            que.mess_arr.push_back(buff);
+            MPI_Irecv(buff,1,MPI_mess,index,2,world,&que.req_arr.back());
             answers[index]--;
+            if (que.req_arr.size() > MAX_QUE_SIZE)
+            {
+                clear_mess_que(save);
+            }
         }
     }
-    pull_que.dest.clear();
+    clear_mess_que(save);
     return out;
 }

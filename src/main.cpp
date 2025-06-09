@@ -5,8 +5,8 @@
 
 int main(int argc, char** argv)
 {
-    float tau = 0.;
-    int delta = 5;
+    float tau = 0.5;
+    int delta = 10;
     bool graph = false;
     fs::path input_path = argv[1];
     fs::path output_path = argv[2];

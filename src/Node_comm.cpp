@@ -1,16 +1,31 @@
 #include "Node.hpp"
+auto nothing = [](Message* val) {};
 
-void Node::clear_mess_que()
+void Node::clear_mess_que(std::function<void(Message*)> fun)
 {
     MPI_Waitall(que.req_arr.size(), que.req_arr.data(), MPI_STATUS_IGNORE);
-    for (auto element:que.mess_arr)
+    for (Message* element:que.mess_arr)
     {
+        fun(element);
         delete element;
     }
     que.mess_arr.clear();
     que.req_arr.clear();
 }
-
+/*
+void Node::clear_que_and_relax()
+{
+    MPI_Waitall(que.req_arr.size(), que.req_arr.data(), MPI_STATUS_IGNORE);
+    for (auto buff:que.mess_arr)
+    {
+        assert(buff->v >= lower && buff->v <=upper);
+        relax(0,buff->v,buff->distance);
+        delete buff;
+    }
+    que.mess_arr.clear();
+    que.req_arr.clear();
+}
+*/
 void Node::get_graph_comm(MPI_Comm *com)
 {
     MPI_Info info;
@@ -62,7 +77,7 @@ void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
 
         if (que.req_arr.size() > MAX_QUE_SIZE)
         {
-            clear_mess_que();
+            clear_mess_que(nothing);
         }
     }
 }
@@ -79,13 +94,19 @@ void Node::synchronize_normal()
     }
 
     //Step 2 - wait for all messages
-    clear_mess_que();
+    clear_mess_que(nothing);
+    que.dest.clear();
 
 
     MPI_Alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 3 - recive all messages
+    //
+    auto relax_lambda = [this](Message* val){
+        assert(val->v >= lower && val->v <=upper);
+        this->relax(0,val->v,val->distance);
+    };
     int index = 0;
     while (index < size_world)
     {
@@ -95,16 +116,19 @@ void Node::synchronize_normal()
         }
         else
         {
-            Message buff;
-            MPI_Recv(&buff,1,MPI_mess,index,0,world,MPI_STATUS_IGNORE);
-            assert(buff.v >= lower && buff.v <=upper);
-            relax(0,buff.v,buff.distance);
+            Message *mes = new Message;
+            que.req_arr.push_back(MPI_REQUEST_NULL);
+            que.mess_arr.push_back(mes);
+            MPI_Irecv(mes,1,MPI_mess,index,0,world,&que.req_arr.back());
+
+            if (que.req_arr.size() > MAX_QUE_SIZE)
+            {
+                clear_mess_que(relax_lambda);
+            }
             mess_to_recive[index]--;
         }
     }
-
-    //Step 4 - cleanup
-    que.dest.clear();
+    clear_mess_que(relax_lambda);
 }
 
 
@@ -123,12 +147,17 @@ void Node::synchronize_graph()
     }
 
     //Step 2 - wait for all messages
-    clear_mess_que();
+    clear_mess_que(nothing);
+    que.dest.clear();
 
     MPI_Neighbor_alltoall(count_to_send.data(),1,MPI_INT,
         mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 3 - recive all messages
+    auto relax_lambda = [this](Message* val){
+        assert(val->v >= lower && val->v <=upper);
+        this->relax(0,val->v,val->distance);
+    };
     int index = 0;
     while (index < mess_to_recive.size())
     {
@@ -138,14 +167,18 @@ void Node::synchronize_graph()
         }
         else
         {
-            Message buff;
-            MPI_Recv(&buff,1,MPI_mess,table.node[index],0,world,MPI_STATUS_IGNORE);
-            assert(buff.v >= lower && buff.v <=upper);
-            relax(0,buff.v,buff.distance);
+
+            Message *mes = new Message;
+            que.req_arr.push_back(MPI_REQUEST_NULL);
+            que.mess_arr.push_back(mes);
+            MPI_Irecv(mes,1,MPI_mess,table.node[index],0,world,&que.req_arr.back());
+
+            if (que.req_arr.size() > MAX_QUE_SIZE)
+            {
+                clear_mess_que(relax_lambda);
+            };
             mess_to_recive[index]--;
         }
     }
-
-    //Step 4 - cleanup
-    que.dest.clear();
+    clear_mess_que(relax_lambda);
 }
