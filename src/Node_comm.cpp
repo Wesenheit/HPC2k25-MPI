@@ -1,5 +1,4 @@
 #include "Node.hpp"
-#include <mpi_proto.h>
 
 #define MAX_QUE_SIZE 128
 
