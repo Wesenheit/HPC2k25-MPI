@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include "Lookup.hpp"
 
-#define MAX_QUE_SIZE 16
+#define MAX_QUE_SIZE 128
 
 namespace fs = std::filesystem;
 using Bucket = std::list<int>;
@@ -28,14 +28,14 @@ typedef struct {
 
 
 typedef struct {
-    std::vector<int> dest_arr;
+    std::unordered_map<int,Vertex> dest;
     std::vector<MPI_Request> req_arr;
     std::vector<Message*> mess_arr;
 } MessStruct;
 
 
 typedef struct {
-    std::vector<int> dest_arr;
+    std::unordered_map<int,Vertex> dest;
     std::vector<MPI_Request> req_arr;
     std::vector<Vertex*> mess_arr;
 } PullStruct;

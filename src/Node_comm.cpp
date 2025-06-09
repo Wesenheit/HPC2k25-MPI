@@ -51,7 +51,11 @@ void Node::relax(Vertex u, Vertex v, DVar d,int bucket_th)
         int destination = table.get_node_for_value(v);
         Message* mes = new Message;
         *mes = {v,d};
-        que.dest_arr.push_back(destination);
+        if (que.dest.find(destination) == que.dest.end())
+        {
+            que.dest[destination] = 0;
+        }
+        que.dest[destination]++;
         que.req_arr.push_back(MPI_REQUEST_NULL);
         que.mess_arr.push_back(mes);
         MPI_Isend(mes,1,MPI_mess,destination,0,
@@ -69,10 +73,10 @@ void Node::synchronize_normal()
     //Step 1 - measure total amount of messages
     std::vector<int> count_to_send(size_world,0);
     std::vector<int> mess_to_recive(size_world,0);
-    std::cout<<que.dest_arr.size()<<std::endl;
-    for (auto element:que.dest_arr)
+    for (int i = 0; i < size_world;i++)
     {
-        count_to_send[element]++;
+        if (que.dest.find(i) != que.dest.end())
+            count_to_send[i] = que.dest[i];
     }
 
     //Step 2 - wait for all messages
@@ -101,20 +105,22 @@ void Node::synchronize_normal()
     }
 
     //Step 4 - cleanup
-    que.dest_arr.clear();
+    que.dest.clear();
 }
 
 
 
 void Node::synchronize_graph()
 {
+    int degree = table.node.size();
     //Step 1 - measure total amount of messages
-    std::vector<int> count_to_send(table.node.size(),0);
-    std::vector<int> mess_to_recive(table.node.size(),0);
+    std::vector<int> count_to_send(degree,0);
+    std::vector<int> mess_to_recive(degree,0);
 
-    for (auto element:que.dest_arr)
+    for (int i = 0; i < degree;i++)
     {
-        count_to_send[table.get_index(element)]++;
+        if (que.dest.find(table.node[i]) != que.dest.end())
+            count_to_send[i] = que.dest[table.node[i]];
     }
 
     //Step 2 - wait for all messages
@@ -142,5 +148,5 @@ void Node::synchronize_graph()
     }
 
     //Step 4 - cleanup
-    que.dest_arr.clear();
+    que.dest.clear();
 }

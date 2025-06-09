@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include "Node.hpp"
 
-#define OPT true
+#define OPT false
 
 int main(int argc, char** argv)
 {

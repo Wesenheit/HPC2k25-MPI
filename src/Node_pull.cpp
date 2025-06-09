@@ -26,7 +26,11 @@ void Node::send_request(Vertex u)
     }
     Vertex *data = new Vertex;
     *data = u;
-    pull_que.dest_arr.push_back(dest);
+    if (pull_que.dest.find(dest) == pull_que.dest.end())
+    {
+        pull_que.dest[dest] = 0;
+    }
+    pull_que.dest[dest]++;
     pull_que.req_arr.push_back(MPI_REQUEST_NULL);
     pull_que.mess_arr.push_back(data);
     MPI_Isend(data, 1, MPI_INT, dest, 1, world,&pull_que.req_arr.back());
@@ -43,9 +47,10 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
     std::vector<int> count_to_send(size_world,0);
     std::vector<int> mess_to_recive(size_world,0);
 
-    for (auto element:pull_que.dest_arr)
+    for (int i = 0; i < size_world;i++)
     {
-        count_to_send[element]++;
+        if (pull_que.dest.find(i) != pull_que.dest.end())
+            count_to_send[i] = pull_que.dest[i];
     }
 
     //Step 2 - wait for all messages
@@ -119,7 +124,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
             answers[index]--;
         }
     }
-    pull_que.dest_arr.clear();
+    pull_que.dest.clear();
     return out;
 }
 
@@ -129,9 +134,10 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     //Step 1 - measure total amount of messages
     std::vector<int> count_to_send(degree,0);
     std::vector<int> mess_to_recive(degree,0);
-    for (auto element:pull_que.dest_arr)
+    for (int i = 0; i < degree;i++)
     {
-        count_to_send[table.get_index(element)]++;
+        if (pull_que.dest.find(table.node[i]) != pull_que.dest.end())
+            count_to_send[i] = pull_que.dest[i];
     }
 
     //Step 2 - wait for all messages
@@ -205,6 +211,6 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
             answers[index]--;
         }
     }
-    pull_que.dest_arr.clear();
+    pull_que.dest.clear();
     return out;
 }
