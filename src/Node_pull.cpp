@@ -1,6 +1,7 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
 #include <algorithm>
+#include <set>
 
 void Node::clear_mess_que_pull()
 {
@@ -60,10 +61,11 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
         mess_to_recive.data(),1,MPI_INT,world);
 
     //Step 3 - recive all messages
+
     std::vector<int> requests_to_return(size_world,0);
     std::vector<int> answers(size_world,0);
     int index = 0;
-    std::vector<std::pair<int,Vertex>> requested_vertices;
+    std::set<std::pair<int,Vertex>> requested_vertices;
 
     while (index < size_world)
     {
@@ -78,19 +80,21 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_normal(int k)
             MPI_Recv(&u,1,MPI_INT,index,1,world,MPI_STATUS_IGNORE);
             assert(u >= lower && u <=upper);
             bool found = false;
-            if (k < buckets.size() && buckets[k])
+            if (deleted.size() > 0)
             {
-                found = std::find(buckets[k]->begin(), buckets[k]->end(),
-                    u) != buckets[k]->end();
+                found = std::find(deleted.begin(), deleted.end(),
+                    u) != deleted.end();
             }
 
-            if (found && tenative[u-lower] > k*Delta)
+            if (found && tenative[u-lower] >= k*Delta)
             {
-                requests_to_return[index]++;
-                requested_vertices.push_back({index,u});
+                if (requested_vertices.find({index,u}) == requested_vertices.end())
+                {
+                    requests_to_return[index]++;
+                    requested_vertices.insert({index,u});
+                }
             }
             mess_to_recive[index]--;
-
         }
     }
 
@@ -137,7 +141,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     for (int i = 0; i < degree;i++)
     {
         if (pull_que.dest.find(table.node[i]) != pull_que.dest.end())
-            count_to_send[i] = pull_que.dest[i];
+            count_to_send[i] = pull_que.dest[table.node[i]];
     }
 
     //Step 2 - wait for all messages
@@ -150,7 +154,7 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
     std::vector<int> requests_to_return(degree,0);
     std::vector<int> answers(degree,0);
     int index = 0;
-    std::vector<std::pair<int,Vertex>> requested_vertices;
+    std::set<std::pair<int,Vertex>> requested_vertices;
 
     while (index < degree)
     {
@@ -160,27 +164,27 @@ std::unordered_map<Vertex,DVar> Node::accept_requests_graph(int k)
         }
         else
         {
-
             Vertex u;
             MPI_Recv(&u,1,MPI_INT,table.node[index],1,world,MPI_STATUS_IGNORE);
             assert(u >= lower && u <=upper);
             bool found = false;
-            if (k < buckets.size() && buckets[k])
+            if (deleted.size() > 0)
             {
-                found = std::find(buckets[k]->begin(), buckets[k]->end(),
-                    u) != buckets[k]->end();
+                found = std::find(deleted.begin(), deleted.end(),
+                    u) != deleted.end();
             }
 
-            if (found && tenative[u-lower] > k*Delta)
+            if (found && tenative[u-lower] >= k*Delta)
             {
-                requests_to_return[index]++;
-                requested_vertices.push_back({table.node[index],u});
+                if (requested_vertices.find({table.node[index],u}) == requested_vertices.end())
+                {
+                    requests_to_return[index]++;
+                    requested_vertices.insert({table.node[index],u});
+                }
             }
             mess_to_recive[index]--;
-
         }
     }
-
     //Step 4 Send numbers of answeres to recieve
     MPI_Neighbor_alltoall(requests_to_return.data(),1,MPI_INT,
         answers.data(),1,MPI_INT,world);

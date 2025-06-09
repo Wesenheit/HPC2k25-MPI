@@ -57,6 +57,7 @@ class Node
 
     std::vector<Bucket*> buckets; //vector of buckets
     std::vector<DVar> tenative; //tenative distance
+    std::vector<int> deleted;
 
     PullStruct pull_que;
 

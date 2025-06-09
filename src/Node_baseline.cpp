@@ -17,7 +17,7 @@ void Node::run()
 
         if (k == MAX)
             break;
-        std::vector<int> deleted;
+        deleted.clear();
         do
         {
             if (k < buckets.size() && buckets[k])
