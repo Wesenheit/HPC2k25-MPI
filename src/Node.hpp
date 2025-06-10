@@ -31,6 +31,7 @@ typedef struct {
 typedef struct {
     std::vector<int> dest;
     std::vector<Message> mess_arr;
+    std::vector<MPI_Request> req_arr;
 } MessStruct;
 
 class Node
@@ -60,7 +61,7 @@ class Node
     MPI_Datatype MPI_mess;
 
     MPI_Win tenative_win;
-;
+
 
     public:
         Node(int Delta,fs::path in, MPI_Comm com);

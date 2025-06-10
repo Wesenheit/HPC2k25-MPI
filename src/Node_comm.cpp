@@ -40,10 +40,21 @@ void Node::relax(Vertex u, Vertex v, DVar d, int bucket_th)
     }
     else
     {
-        int destination = table.get_node_for_value(v);
+        int dest = table.get_node_for_value(v);
         Message mes = {v,d};
-        que.dest.push_back(destination);
+        if (std::find(que.dest.begin(),que.dest.end(),dest)==que.dest.end())
+            MPI_Win_lock(MPI_LOCK_SHARED, dest, 0, tenative_win);
+
+        que.dest.push_back(dest);
         que.mess_arr.push_back(mes);
+        que.req_arr.push_back(MPI_REQUEST_NULL);
+
+        MPI_Aint target_disp = (v - table.get_lower(dest));
+
+        MPI_Raccumulate(&(que.mess_arr.back().distance), 1, MPI_UNSIGNED_LONG_LONG, dest,
+                       target_disp, 1, MPI_UNSIGNED_LONG_LONG,
+                       MPI_MIN, tenative_win,&que.req_arr.back());
+
         if (que.mess_arr.size() > MAX_QUE_SIZE)
         {
             synchronize_rma();
@@ -54,34 +65,23 @@ void Node::relax(Vertex u, Vertex v, DVar d, int bucket_th)
 void Node::synchronize_rma()
 {
 
-    std::unordered_map<int, std::vector<int>> per_dest_indices;
+    std::unordered_map<int, std::vector<MPI_Request>> per_dest_REQ;
     for (int i = 0; i < que.dest.size(); i++)
     {
-        per_dest_indices[que.dest[i]].push_back(i);
+        per_dest_REQ[que.dest[i]].push_back(que.req_arr[i]);
     }
 
-    for (auto& [dest, indices] : per_dest_indices)
+    for (auto& [dest, req] : per_dest_REQ)
     {
-        MPI_Win_lock(MPI_LOCK_SHARED, dest, 0, tenative_win);
-
-        for (int idx : indices)
-        {
-            DVar new_dist = que.mess_arr[idx].distance;
-            Vertex v = que.mess_arr[idx].v;
-
-            MPI_Aint target_disp = (v - table.get_lower(dest));
-            MPI_Accumulate(&new_dist, 1, MPI_UNSIGNED_LONG_LONG, dest,
-                           target_disp, 1, MPI_UNSIGNED_LONG_LONG,
-                           MPI_MIN, tenative_win);
-
-            MPI_Win_flush(dest, tenative_win);
-        }
+        MPI_Waitall(req.size(), req.data(), MPI_STATUSES_IGNORE);
         MPI_Win_unlock(dest, tenative_win);
     }
 
     // Clear local queue
+
     que.dest.clear();
     que.mess_arr.clear();
+    que.req_arr.clear();
 }
 
 void Node::synchronize(int bucket_th)
