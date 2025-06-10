@@ -1,13 +1,11 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
 #include <cassert>
-#include <mpi_proto.h>
 
 void Node::get_graph_comm(MPI_Comm *com)
 {
     MPI_Info info;
     MPI_Info_create(&info);
-    MPI_Info_set(info, "no_local", "true");
     MPI_Info_set(info, "reorder", "true");
     MPI_Dist_graph_create_adjacent(world,table.node.size(),table.node.data(),table.how_many.data(),
         table.node.size(),table.node.data(),table.how_many.data(),info,1,com);
