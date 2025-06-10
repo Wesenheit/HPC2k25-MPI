@@ -1,6 +1,7 @@
 #ifndef PROCESS
 #define PROCESS
 
+#include <algorithm>
 #include <climits>
 #include <iostream>
 #include <fstream>
@@ -11,11 +12,9 @@
 #include <cassert>
 #include <mpi.h>
 #include <unordered_map>
-#include <functional>
-
 #include "Lookup.hpp"
 
-#define MAX_QUE_SIZE 128
+#define MAX_QUE_SIZE 64
 
 namespace fs = std::filesystem;
 using Bucket = std::list<int>;
@@ -30,17 +29,9 @@ typedef struct {
 
 
 typedef struct {
-    std::unordered_map<int,Vertex> dest;
-    std::vector<MPI_Request> req_arr;
-    std::vector<Message*> mess_arr;
+    std::vector<int> dest;
+    std::vector<Message> mess_arr;
 } MessStruct;
-
-
-typedef struct {
-    std::unordered_map<int,Vertex> dest;
-    std::vector<MPI_Request> req_arr;
-    std::vector<Vertex*> mess_arr;
-} PullStruct;
 
 class Node
 {
@@ -61,13 +52,19 @@ class Node
     std::vector<DVar> tenative; //tenative distance
     std::vector<int> deleted;
 
-    PullStruct pull_que;
-
     Lookup table; //lookup table, alows to
     //obtain the source of the target
     bool is_graph;
     MessStruct que;
     MPI_Datatype MPI_mess;
+
+    MPI_Win window;
+    MPI_Win count_window;
+    int local_synchro;
+    int global_synchro;
+    Message* shared_buffer;
+    int* message_counts;
+    std::vector<Message> local_messages;
 
     public:
         Node(int Delta,fs::path in, MPI_Comm com);
@@ -87,40 +84,20 @@ class Node
                 outputFile << tenative[i-lower] << std::endl;
             }
         }
+        void initialize_rma_window();
+        void finalize_rma_window();
+        void synchronize_rma();
         void synchronize()
         {
-            if (is_graph)
+            synchronize_rma();
+            global_synchro = 1;
+            while(global_synchro)
             {
-                synchronize_graph();
-            }
-            else
-            {
-                synchronize_normal();
+                synchronize_rma();
             }
         }
-        void synchronize_normal();
-        void synchronize_graph();
         void construct_lookup_table();
         void run();
-
-        void clear_mess_que(std::function<void(Message*)> fun);
-        void clear_mess_que_pull(std::function<void(Vertex*)> fun);
-
-        void send_request(Vertex u);
-        std::unordered_map<Vertex,DVar> accept_requests(int k)
-        {
-            if (is_graph)
-            {
-                return accept_requests_graph(k);
-            }
-            else
-            {
-                return accept_requests_normal(k);
-            }
-        }
-        std::unordered_map<Vertex,DVar> accept_requests_normal(int k);
-        std::unordered_map<Vertex,DVar> accept_requests_graph(int k);
-
 
         void run_opt(float tau);
         void run_pruning();

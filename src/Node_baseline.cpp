@@ -5,6 +5,7 @@ void Node::run()
     int k = 0;
     int work_to_do;
     std::vector<bool> was_deleted(N,false);
+    initialize_rma_window();
     do
     {
         while (k < buckets.size() && (!buckets[k] || buckets[k]->empty()))
@@ -43,7 +44,6 @@ void Node::run()
             work_to_do = (k < buckets.size() && buckets[k] && !buckets[k]->empty());
         }
         while (all_reduce(&work_to_do,MPI_INT,MPI_LOR));
-
         //Heavy reduction
         for (auto u:deleted)
         {
@@ -53,7 +53,8 @@ void Node::run()
             }
         }
         synchronize();
-    k++;
+        k++;
     }
     while (true);
+    finalize_rma_window();
 }

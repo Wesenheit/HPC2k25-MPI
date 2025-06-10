@@ -7,7 +7,6 @@ find_package(MPI REQUIRED)
 set(SOURCES
     src/main.cpp src/Node_comm.cpp
     src/Node_base.cpp src/Node_baseline.cpp
-    src/Node_optimise.cpp src/Node_pull.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

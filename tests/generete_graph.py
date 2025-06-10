@@ -2,9 +2,7 @@ import argparse
 import networkit as nk
 import os
 import numpy as np
-from email.parser import Parser
-from random import random
-import sys
+
 
 
 def generate_graph(args):
