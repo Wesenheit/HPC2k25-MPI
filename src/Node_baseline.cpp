@@ -53,6 +53,7 @@ void Node::run()
             }
         }
         synchronize();
+        MPI_Barrier(world);
         k++;
     }
     while (true);

@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include "Lookup.hpp"
 
-#define MAX_QUE_SIZE 64
+#define MAX_QUE_SIZE 128
 
 namespace fs = std::filesystem;
 using Bucket = std::list<int>;
@@ -38,7 +38,7 @@ class Node
     int N; //number of nodes
     int lower; //lower bound for nodes we manage
     int upper; //upper bound for nodes we manage
-    int Delta; //just delta
+    DVar Delta; //just delta
 
     MPI_Comm world; //communicator
     int rank; //rank
@@ -50,6 +50,7 @@ class Node
 
     std::vector<Bucket*> buckets; //vector of buckets
     std::vector<DVar> tenative; //tenative distance
+    std::vector<DVar> buffer;
     std::vector<int> deleted;
 
     Lookup table; //lookup table, alows to
@@ -58,13 +59,8 @@ class Node
     MessStruct que;
     MPI_Datatype MPI_mess;
 
-    MPI_Win window;
-    MPI_Win count_window;
-    int local_synchro;
-    int global_synchro;
-    Message* shared_buffer;
-    int* message_counts;
-    std::vector<Message> local_messages;
+    MPI_Win tenative_win;
+;
 
     public:
         Node(int Delta,fs::path in, MPI_Comm com);
@@ -87,15 +83,27 @@ class Node
         void initialize_rma_window();
         void finalize_rma_window();
         void synchronize_rma();
-        void synchronize()
+        void synchronize(int bucket_th=-1);
+
+        void add_to_bucket(Vertex v, DVar d,int bucket_th)
         {
-            synchronize_rma();
-            global_synchro = 1;
-            while(global_synchro)
+            int j = d / Delta;
+            if (bucket_th > 0 && j > bucket_th) j = bucket_th;
+            if (j >= buckets.size())
             {
-                synchronize_rma();
+                buckets.resize(j + 1, nullptr);
             }
-        }
+            if (!buckets[j])
+            {
+                buckets[j] = new Bucket;
+            }
+            if (buckets[j]->empty() ||
+                buckets[j]->back() != v)
+            {
+                buckets[j]->push_back(v);
+            }
+        };
+
         void construct_lookup_table();
         void run();
 

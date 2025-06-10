@@ -1,18 +1,14 @@
-#include "Lookup.hpp"
 #include "Node.hpp"
-#include <cstddef>
 
 void Node::run_opt(float tau)
 {
-    max = all_reduce(&max,MPI_LONG_LONG_INT,MPI_MAX);
     int k = 0;
     int work_to_do;
     std::vector<bool> was_deleted(N,false);
+    initialize_rma_window();
     int settled_vertices = 0;
     int global_settled = 0;
     int bucket_th = -1;
-    int total_pull = 0;
-    int total_push = 0;
     do
     {
         while (k < buckets.size() && (!buckets[k] || buckets[k]->empty()))
@@ -57,90 +53,33 @@ void Node::run_opt(float tau)
                     if (!was_deleted[u])
                     {
                         was_deleted[u] = true;
-                        settled_vertices++;
                         if (bucket_th < 0)
                             deleted.push_back(u);
+                        settled_vertices++;
                     }
                     for (const auto& [v, d] : adjacency_list[u]) {
                         if (d <= Delta || bucket_th > 0)
                             relax(u,v,d + tenative[u-lower]);
                     }
+
                }
             }
             synchronize();
             work_to_do = (k < buckets.size() && buckets[k] && !buckets[k]->empty());
         }
         while (all_reduce(&work_to_do,MPI_INT,MPI_LOR));
-
-
-        int k_new;
-
-        //Estimate pull and push volumes
-        int push = 0;
-        int pull = 0;
-
-        //Push
+        //Heavy reduction
         for (auto u:deleted)
         {
-            push += long_count[u];
-        }
-        //Pull
-
-        std::vector<Vertex> forward;
-        for (Vertex i = lower; i <=upper; i++)
-        {
-            if (!was_deleted[i])
-            {
-                forward.push_back(i);
-                pull++;
+            for (const auto& [v, d] : adjacency_list[u]) {
+                if (d > Delta)
+                    relax(u,v,d + tenative[u-lower]);
             }
         }
-
-        int glob_pull = 2 * all_reduce(&pull,MPI_INT, MPI_SUM);
-        int glob_push = all_reduce(&push,MPI_INT, MPI_SUM);
-        if (glob_push < glob_pull)
-        {
-            total_push++;
-            //Heavy reduction
-            for (auto u:deleted)
-            {
-                for (const auto& [v, d] : adjacency_list[u]) {
-                    if (d > Delta)
-                        relax(u,v,d + tenative[u-lower]);
-                }
-            }
-            synchronize();
-        }
-        else
-        {
-            total_pull++;
-            synchronize();
-            std::unordered_map<Vertex, std::vector<std::pair<Vertex,DVar>>> what_one_needs;
-            for (Vertex v:forward)
-            {
-                for (const auto& [u, d] : adjacency_list[v]) {
-                    if (d > Delta && d < tenative[v-lower]-k*Delta)
-                    {
-                        send_request(u);
-                        what_one_needs[v].push_back({u,d});
-                    }
-                }
-            }
-
-            auto dist = accept_requests(k);
-            for (auto [v,vector]:what_one_needs)
-            {
-                for (auto [u,d]:vector)
-                {
-                    assert(v>=lower && v<=upper);
-                    auto it = dist.find(u);
-                    if (it != dist.end())
-                        relax(u, v, dist[u]+d);
-                }
-            }
-
-        }
-    k++;
+        synchronize();
+        MPI_Barrier(world);
+        k++;
     }
     while (true);
+    finalize_rma_window();
 }

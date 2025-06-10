@@ -1,12 +1,14 @@
+#include <limits>
 #include <mpi.h>
+#include "Lookup.hpp"
 #include "Node.hpp"
 
-#define OPT false
+#define OPT true
 
 int main(int argc, char** argv)
 {
-    float tau = 0.5;
-    int delta = 10;
+    float tau = 0.4;
+    DVar delta = 10;//std::numeric_limits<DVar>::max();
     bool graph = false;
     fs::path input_path = argv[1];
     fs::path output_path = argv[2];
