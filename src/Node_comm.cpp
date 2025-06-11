@@ -1,7 +1,6 @@
 #include "Lookup.hpp"
 #include "Node.hpp"
 #include <cassert>
-#include <mpi_proto.h>
 
 void Node::get_graph_comm(MPI_Comm *com)
 {
