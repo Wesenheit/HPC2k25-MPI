@@ -59,12 +59,12 @@ void Node::run_opt(float tau)
                     }
                     for (const auto& [v, d] : adjacency_list[u]) {
                         if (d <= Delta || bucket_th > 0)
-                            relax(u,v,d + tenative[u-lower]);
+                            relax(u,v,d + tenative[u-lower],bucket_th);
                     }
 
                }
             }
-            synchronize();
+            synchronize(bucket_th);
             work_to_do = (k < buckets.size() && buckets[k] && !buckets[k]->empty());
         }
         while (all_reduce(&work_to_do,MPI_INT,MPI_LOR));
@@ -73,10 +73,10 @@ void Node::run_opt(float tau)
         {
             for (const auto& [v, d] : adjacency_list[u]) {
                 if (d > Delta)
-                    relax(u,v,d + tenative[u-lower]);
+                    relax(u,v,d + tenative[u-lower],bucket_th);
             }
         }
-        synchronize();
+        synchronize(bucket_th);
         MPI_Barrier(world);
         k++;
     }

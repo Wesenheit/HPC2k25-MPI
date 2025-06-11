@@ -61,6 +61,9 @@ Node::Node(int Delta,fs::path in, MPI_Comm com)
     load_data(in,rank);
 
     tenative = std::vector<DVar>(upper-lower+1,std::numeric_limits<DVar>::max());
+    que.mess_arr.reserve(MAX_QUE_SIZE);
+    que.req_arr.reserve(MAX_QUE_SIZE);
+    que.dest.reserve(MAX_QUE_SIZE);
 
     if (lower == 0)
     {
