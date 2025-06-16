@@ -1,13 +1,13 @@
-#ifndef Lookup_HPP
-#define Lookup_HPP
+module;
+
 #include <algorithm>
 #include <iterator>
 #include <vector>
 
-using DVar = unsigned long long;
-using Vertex = int;
+export module Lookup;
+import Definitions;
 
-class Lookup {
+export class Lookup {
 public:
   std::vector<int> node;
   std::vector<Vertex> lower;
@@ -65,5 +65,3 @@ public:
     return *this;
   }
 };
-
-#endif

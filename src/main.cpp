@@ -1,7 +1,8 @@
-#include "Lookup.hpp"
-#include "Node.hpp"
+#include <filesystem> // Add this to fix the path issue
 #include <limits>
 #include <mpi.h>
+import Node;
+import Definitions;
 
 #define OPT true
 
@@ -9,8 +10,8 @@ int main(int argc, char **argv) {
   float tau = 0.4;
   DVar delta = 10; // std::numeric_limits<DVar>::max();
   bool graph = false;
-  fs::path input_path = argv[1];
-  fs::path output_path = argv[2];
+  Path input_path = argv[1];
+  Path output_path = argv[2];
 
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];

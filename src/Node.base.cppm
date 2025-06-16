@@ -1,9 +1,20 @@
-#include "Lookup.hpp"
-#include "Node.hpp"
+module;
 #include <cassert>
+#include <filesystem>
+#include <fstream>
 #include <limits>
+#include <list>
+#include <mpi.h>
+#include <unordered_map>
+#include <vector>
 
-void Node::load_data(fs::path in, int rank) {
+export module Node:base;
+
+import :interface;
+import Lookup;
+import Definitions;
+
+void Node::load_data(Path in, int rank) {
   std::string name = std::to_string(rank) + ".in";
   in /= name;
 
@@ -42,7 +53,7 @@ void Node::load_data(fs::path in, int rank) {
   MPI_Type_commit(&MPI_mess);
 }
 
-Node::Node(int Delta, fs::path in, MPI_Comm com) {
+Node::Node(int Delta, Path in, MPI_Comm com) {
   this->Delta = Delta;
   world = com;
 

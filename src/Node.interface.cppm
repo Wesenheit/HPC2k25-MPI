@@ -1,26 +1,19 @@
-#ifndef PROCESS
-#define PROCESS
-
-#include "Lookup.hpp"
+module; // Fixed typo
 #include <algorithm>
 #include <cassert>
 #include <climits>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <list>
-#include <mpi.h>
+#include <mpi.h> //module;
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#define MAX_QUE_SIZE 128
+export module Node:interface;
 
-namespace fs = std::filesystem;
-using Bucket = std::list<int>;
-static int MAX = INT_MAX;
-using DVar = unsigned long long;
-using Vertex = int;
+import Lookup;
+import Definitions;
 
 typedef struct {
   Vertex v;
@@ -33,7 +26,7 @@ typedef struct {
   std::vector<MPI_Request> req_arr;
 } MessStruct;
 
-class Node {
+export class Node {
   int N;      // number of nodes
   int lower;  // lower bound for nodes we manage
   int upper;  // upper bound for nodes we manage
@@ -62,12 +55,12 @@ class Node {
   MPI_Win tenative_win;
 
 public:
-  Node(int Delta, fs::path in, MPI_Comm com);
+  Node(int Delta, Path in, MPI_Comm com);
   void relax(Vertex u, Vertex v, DVar d, int bucket_th = -1);
   template <typename T> T all_reduce(T *value, MPI_Datatype type, MPI_Op op);
-  void load_data(fs::path in, int rank);
+  void load_data(Path in, int rank);
   void get_graph_comm(MPI_Comm *com);
-  void save(fs::path out) {
+  void save(Path out) {
     std::string name = std::to_string(rank) + ".out";
     out /= name;
     std::ofstream outputFile(out);
@@ -116,5 +109,3 @@ T Node::all_reduce(T *value, MPI_Datatype type, MPI_Op op) {
   MPI_Allreduce(value, &global, 1, type, op, world);
   return global;
 }
-
-#endif

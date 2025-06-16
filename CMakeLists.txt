@@ -1,23 +1,56 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 4.0.3)  # At least 3.12 for C++20 support and good target handling
 
 project(sssp LANGUAGES CXX)
 
-find_package(MPI REQUIRED)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(SOURCES
-    src/main.cpp src/Node_comm.cpp
-    src/Node_base.cpp src/Node_baseline.cpp
-    src/Node_optimise.cpp
-)
+find_package(MPI REQUIRED)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_link_libraries(${PROJECT_NAME} MPI::MPI_CXX)
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        src/main.cpp
+)
 
-target_compile_options(${PROJECT_NAME} PUBLIC -std=c++17)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
-        target_link_libraries(sssp stdc++fs)
-    endif()
+target_sources(${PROJECT_NAME}
+    PRIVATE
+    FILE_SET CXX_MODULES
+    TYPE CXX_MODULES
+    BASE_DIRS src
+    FILES src/Definitions.cppm
+        src/Lookup.cppm
+        src/Node.cppm
+        src/Node.interface.cppm
+        src/Node.comm.cppm
+        src/Node.base.cppm
+        src/Node.baseline.cppm
+        src/Node.optimise.cppm
+)
+
+
+
+target_link_libraries(${PROJECT_NAME} PRIVATE MPI::MPI_CXX)
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Release>:-O3 -march=native -funroll-loops -fomit-frame-pointer>
+)
+
+# Add compiler-specific flags AFTER defining the target
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -fmodules
+        -fcxx-modules
+        -stdlib=libc++
+        -fmodules
+        -fbuiltin-module-map
+        -fimplicit-module-maps
+    )
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -fmodules-ts
+    )
 endif()
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -funroll-loops -fomit-frame-pointer")
+

@@ -1,6 +1,14 @@
-#include "Lookup.hpp"
-#include "Node.hpp"
+module;
+#include <algorithm>
 #include <cassert>
+#include <mpi.h>
+#include <unordered_map>
+#include <vector>
+
+export module Node:comm;
+import :interface;
+
+import Lookup;
 
 void Node::get_graph_comm(MPI_Comm *com) {
   MPI_Info info;

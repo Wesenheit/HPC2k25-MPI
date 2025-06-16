@@ -1,4 +1,13 @@
-#include "Node.hpp"
+module;
+#include <list>
+#include <mpi.h>
+#include <unordered_map>
+#include <vector>
+
+export module Node:baseline;
+
+import :interface;
+import Definitions;
 
 void Node::run() {
   int k = 0;

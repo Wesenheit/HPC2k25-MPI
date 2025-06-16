@@ -1,4 +1,12 @@
-#include "Node.hpp"
+module;
+#include <list>
+#include <mpi.h>
+#include <unordered_map>
+#include <vector>
+
+export module Node:optimise;
+
+import :interface;
 
 void Node::run_opt(float tau) {
   int k = 0;
