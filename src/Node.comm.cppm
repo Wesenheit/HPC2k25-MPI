@@ -1,6 +1,7 @@
 module;
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <mpi.h>
 #include <unordered_map>
 #include <vector>

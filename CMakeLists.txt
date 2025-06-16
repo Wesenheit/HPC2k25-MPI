@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0.3)  # At least 3.12 for C++20 support and good target handling
+cmake_minimum_required(VERSION 3.28)  # At least 3.12 for C++20 support and good target handling
 
 project(sssp LANGUAGES CXX)
 
