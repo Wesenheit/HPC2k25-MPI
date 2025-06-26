@@ -10,3 +10,12 @@ dependencies = [
     "networkit; sys_platform == 'linux'",
     "networkit@git+https://github.com/networkit/networkit; sys_platform == 'darwin'",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
