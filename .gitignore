@@ -10,8 +10,11 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
+build
 sssp
 .vscode
 *.txt
 *.sl
 src/HPC2k25_MPI.egg-info/
+tests/desert/*.in
+tests/desert/*.out

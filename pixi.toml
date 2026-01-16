@@ -1,0 +1,32 @@
+[workspace]
+name = "HPC2k25-MPI"
+version = "0.1.0"
+description = "HPC2k25 MPI project at MIMUW"
+authors = ["Mateusz Kapusta <mr.kapusta@student.uw.edu.pl>"]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[activation]
+env = { k = "12" ,CXX="clang++"}
+
+[dependencies]
+python = ">3.10"
+numpy = ">1.25"
+networkit = "*"
+clangxx = "*"
+compilers = "*" 
+libcxx = "*"
+openmpi = { version = "5.0.*", build = "external_*" }
+
+[tasks]
+build = "cmake -S . -B build -G Ninja && cmake --build build"
+
+
+generate_val = { cmd = "python tests/generete_graph.py -s 18 -e 4 -k $k -p ./tests/desert --true" }
+generate = { cmd = "python tests/generete_graph.py -s 22 -e 4 -k $k -p ./tests/desert" }
+
+start = {cmd = "mpirun -np $k --bind-to core --map-by core --mca pml ob1 --mca btl self,vader --mca btl_vader_single_copy_mechanism cma --mca osc ^ucx ./build/sssp tests/desert tests/desert"}
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
